@@ -5,15 +5,15 @@ kspaces code is in the process of being refactored to match sklearn's model fitt
 examples will be written soon but intro_figure.ipynb (code for the kspaces paper introductory figure) has some basic usage examples.
 
 functions intended for general usage:
-EM.run_EM - fit a model
-EM.E_step - given a fitted model and some data, perform assignments
-model_selection.total_log_likelihood
-model_selection.model_selection
-model_selection.BIC
-model_selection.ICL - to be uploaded in coming days
-plotting.plot_spaces_2D - better version to be uploaded in coming days
-plotting.plot_3D - better version to be uploaded in coming days
-generate.generate - better version to be uploaded in coming days
+- EM.run_EM - fit a model
+- EM.E_step - given a fitted model and some data, perform assignments
+- model_selection.total_log_likelihood
+- model_selection.model_selection
+- model_selection.BIC
+- model_selection.ICL - to be uploaded in coming days
+- plotting.plot_spaces_2D - better version to be uploaded in coming days
+- plotting.plot_3D - better version to be uploaded in coming days
+- generate.generate - better version to be uploaded in coming days
 
 **EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with run_EM() fail. A buildup option is slow but also very useful for this (will be added in coming days)
 
