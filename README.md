@@ -54,30 +54,30 @@ docstrings copied and pasted below for now:
         set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
         """
 note: objective will be removed as an argument and 'L2' will be hardcoded prior to release.
-def E_step(points, spaces,assignment = 'hard',verbose = False, norm = 'L2'):
-    """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
-    Noise is assumed to be orthogonal to spaces, gaussian, and homoscedastic. The variance is unique to each space.
-    P(space_i | point) = P(point | space_i)*P(space_i)/ sum over k spaces ( P(point | space_j) * P(space_j))
-    
-    points: N x D np array (or less than N if EM is in batch mode)
-    spaces: list of affine subspaces
-    assignment: "hard" "closest" or "soft"
-    verbose: bool
-    norm: "L2" "L1" or "TLAD" (Total least absolute distance)
-    
-    returns: N x K matrix of probabilities P(space | point)"""
-    
-    
-def total_log_likelihood(points, spaces, print_solution= False):
-    """Calculate the Gaussian likelihood of the points given the lines using log sum exp.
+    def E_step(points, spaces,assignment = 'hard',verbose = False, norm = 'L2'):
+        """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
+        Noise is assumed to be orthogonal to spaces, gaussian, and homoscedastic. The variance is unique to each space.
+        P(space_i | point) = P(point | space_i)*P(space_i)/ sum over k spaces ( P(point | space_j) * P(space_j))
         
-    points: N x D array
-    spaces: list of affine subspaces
-    print_solution: whether to print the spaces
+        points: N x D np array (or less than N if EM is in batch mode)
+        spaces: list of affine subspaces
+        assignment: "hard" "closest" or "soft"
+        verbose: bool
+        norm: "L2" "L1" or "TLAD" (Total least absolute distance)
+        
+        returns: N x K matrix of probabilities P(space | point)"""
     
-    returns: total log likelihood
-    """
     
-def BIC(df,num_points,log_likelihood):
-    """returns BIC"""
+    def total_log_likelihood(points, spaces, print_solution= False):
+        """Calculate the Gaussian likelihood of the points given the lines using log sum exp.
+            
+        points: N x D array
+        spaces: list of affine subspaces
+        print_solution: whether to print the spaces
+        
+        returns: total log likelihood
+        """
+    
+    def BIC(df,num_points,log_likelihood):
+        """returns BIC"""
     
