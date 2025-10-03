@@ -321,6 +321,22 @@ class affine_subspace:
             return L1_distances, selected_points
         else:
             return L1_distances
+    
+    def generate(self, size = 1):
+        rng = np.random.default_rng()
+        d, D = self.d, self.D
+        if d == 0:
+            return rng.standard_normal((size, D)) * self.sigma
+
+
+        Z = rng.standard_normal((size, d)) * self.latent_sigmas  
+        X_signal = Z @ self.vectors                                   
+
+        noise = rng.standard_normal((size, D)) * self.sigma     
+
+        X_noise = noise - ((noise @ self.vectors.T) @ self.vectors)
+
+        return X_signal + X_noise + self.translation
 
 ################################## HELPERS TO CHECK CONVERGENCE ###########################
 
@@ -371,6 +387,8 @@ def check_subspace_equivalency(space_1, space_2, tolerance = 5e-4, check_sigma =
         if abs(space_1.sigma - space_2.sigma) > (space_1.sigma*.05): #less than 5% change in noise parameter and no significant change in positions of vectors (already tested above)
             return False
     return True
+
+
 
 ################################## HELPERS FOR OPTIMIZATION ###########################
 # To use scipy optimize, I need to convert the affine subspace class to a 1D vector

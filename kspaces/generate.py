@@ -1,6 +1,33 @@
 import numpy as np
 from .affine_subspace_ import vectors_to_orthonormal_basis
 
+def check_inputs(spaces):
+    for s in spaces:
+        if s.prior < 0:
+            raise ValueError(f'Component weight s.prior {s.prior} < 0')
+    D = spaces[0].D
+    for s in spaces:
+        if s.D != D:
+            raise ValueError(f'Ambient data dimension s.D not equal for all spaces')       
+            
+def generate(spaces_,size = 1, seed = None):
+    if seed is not None:
+        np.random.seed(seed)
+    spaces = spaces_
+    if not isinstance(spaces_, list):
+        spaces = [spaces_]
+    check_inputs(spaces)
+    
+    weights = np.array([s.prior for s in spaces])
+    weights = weights/np.sum(weights)
+    z = np.random.choice(np.arange(len(spaces)),size = size, p = weights)
+    X = np.zeros((size, spaces[0].D))
+    for i in np.unique(z):
+        m = z == i
+        s = spaces[i]
+        X[m] = s.generate(size = np.sum(m))
+    return X 
+
 def generate_points_subspace(translation, vectors, num_points, dist_std = 3, noise_std=0.1):
     """generates normally distributed points in an affine subspace and then perturbs with isotropic normal noise (variance = sqrt(noise_std) in each of the D dimensions). note: isotropic noise is added to latent space as well, so fitting k-spaces will not return latent_sigma equal to dist_std. it will be sqrt(dist_std ^2 + noise_std^2)
     
