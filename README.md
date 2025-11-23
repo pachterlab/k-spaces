@@ -23,7 +23,7 @@ functions intended for general usage:
 
 **generate** - generates synthetic data from an affine subspace. Will be updated soon to generate synthetic data given an affine subspace object or a kspaces model containing affine subspace objects.
 
-**plotting** - visualization functions using matplotlib. Will be updated prior to release. view_3D() outputs static views of 3D data from different angles using matplotlib. A new function using plotly to generate an interactive 3D plot has been written and will be added shortly
+**plotting** - visualization functions using matplotlib. Will be updated prior to release. view_3D() outputs static views of 3D data from different angles using matplotlib. 
 
 docstrings copied and pasted below for now:
     
