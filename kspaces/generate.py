@@ -11,6 +11,11 @@ def check_inputs(spaces):
             raise ValueError(f'Ambient data dimension s.D not equal for all spaces')       
             
 def generate(spaces_,size = 1, seed = None):
+    """generates points given a list of affine_subspaces
+    
+    spaces_: list of affine_subspaces
+    size: number of data points
+    """
     if seed is not None:
         np.random.seed(seed)
     spaces = spaces_
@@ -29,7 +34,9 @@ def generate(spaces_,size = 1, seed = None):
     return X 
 
 def generate_points_subspace(translation, vectors, num_points, dist_std = 3, noise_std=0.1):
-    """generates normally distributed points in an affine subspace and then perturbs with isotropic normal noise (variance = sqrt(noise_std) in each of the D dimensions). note: isotropic noise is added to latent space as well, so fitting k-spaces will not return latent_sigma equal to dist_std. it will be sqrt(dist_std ^2 + noise_std^2)
+    """generates points from translation and basis vectors rather than using the affine_subspace objects. Using generate() instead with affine_subspace objects is recommended.
+    
+    generates normally distributed points in an affine subspace and then perturbs with isotropic normal noise (variance = sqrt(noise_std) in each of the D dimensions). note: isotropic noise is added to latent space as well, so fitting k-spaces will not return latent_sigma equal to dist_std. it will be sqrt(dist_std ^2 + noise_std^2)
     
     translation vector is also the mean
     

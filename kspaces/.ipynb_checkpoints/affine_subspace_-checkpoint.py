@@ -230,10 +230,11 @@ class affine_subspace:
 
     
     def generate(self, size = 1):
+        """generate synthetic data"""
         rng = np.random.default_rng()
         d, D = self.d, self.D
         if d == 0:
-            return rng.standard_normal((size, D)) * self.sigma
+            return rng.standard_normal((size, D)) * self.sigma + self.translation
 
 
         Z = rng.standard_normal((size, d)) * self.latent_sigmas  
