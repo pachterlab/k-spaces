@@ -131,7 +131,7 @@ class affine_subspace:
         
         
     def fit(self,points,responsibilities, verbose):
-        """ fits subspace to points using  PCA/SVD if responsibilities are all 0 or 1, otherwise with np covariance.
+        """ fits subspace to points using PCA/SVD if responsibilities are all 0 or 1, otherwise with np.covariance.
         """
         translation = None
         vectors = None
@@ -161,7 +161,7 @@ class affine_subspace:
             
             #weighted covariance matrix
 
-            cov = np.cov(points_, rowvar = False, aweights = responsibilities)
+            cov = np.cov(points_, rowvar = False, aweights = responsibilities) #np.cov is the sample covariance by default, while np.var is the population variance
             
             #eigenvalues and eigenvectors
             eigvals, eigvecs = np.linalg.eig(cov)
@@ -299,31 +299,31 @@ def check_subspace_equivalency(space_1, space_2, tolerance = 5e-4, check_sigma =
 
 
 ################################## HELPERS FOR OPTIMIZATION ###########################
-# To use scipy optimize, I need to convert the affine subspace class to a 1D vector
+# To use scipy optimize, convert the affine subspace class to a 1D vector
 # some functions below are copies of their affine subspace counterparts, modified to 
 #      work with the array instead
-#######################################################################################
-def unpack_subspace_array(subspace_array,D):
-    """accepts 1-D array of translation followed by direction vectors
-    reshapes and returns the translation and direction vectors"""
-    if len(subspace_array) % D != 0:
-        raise RuntimeError("ERROR: subspace array length not multiple of D")
-    reshaped_array = subspace_array.reshape(int(len(subspace_array)/D),D) #(k+1) x D array
-    translation = reshaped_array[0]
-    vectors = np.array([])
-    if len(reshaped_array) == 2: 
-        vectors = np.array([reshaped_array[1]])
-    elif len(reshaped_array) > 2: 
-        vectors = reshaped_array[1:]
-    return translation, vectors
-
-def pack_subspace_array(affine_subspace):
-    """converts the translation and direction vectors of an affine subspace object to a 1x((k+1)D) array"""
-    subspace_array = [affine_subspace.translation]
-    for v in affine_subspace.vectors:
-        subspace_array.append(v)
-    return np.array(subspace_array).flatten()
-
+########################################################################################
+#def unpack_subspace_array(subspace_array,D):
+#    """accepts 1-D array of translation followed by direction vectors
+#    reshapes and returns the translation and direction vectors"""
+#    if len(subspace_array) % D != 0:
+#        raise RuntimeError("Subspace array length not multiple of D")
+#    reshaped_array = subspace_array.reshape(int(len(subspace_array)/D),D) #(k+1) x D array
+#    translation = reshaped_array[0]
+#    vectors = np.array([])
+#    if len(reshaped_array) == 2: 
+#        vectors = np.array([reshaped_array[1]])
+#    elif len(reshaped_array) > 2: 
+#        vectors = reshaped_array[1:]
+#    return translation, vectors
+#
+#def pack_subspace_array(affine_subspace):
+#    """converts the translation and direction vectors of an affine subspace object to a 1x((k+1)D) array"""
+#    subspace_array = [affine_subspace.translation]
+#    for v in affine_subspace.vectors:
+#        subspace_array.append(v)
+#    return np.array(subspace_array).flatten()
+#
     
 def orthogonal_distance(subspace_array,D,points):   
     translation, vectors = unpack_subspace_array(subspace_array,D)
@@ -361,6 +361,7 @@ def vectors_to_orthonormal_basis(vectors):
         return basis
 
 class fixed_space(affine_subspace):
+    """basis vectors, translation, and latent_sigma parameters are fixed. Only sigma (for noise) and prior (proportion of total ownership of points) can be updated by fixed_space.fit()"""
     #overwrite fit from parent class to keep the space fixed
     def fit(self,points,responsibilities, verbose):
         self.update_sigma(points,responsibilities, verbose)

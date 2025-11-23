@@ -223,7 +223,6 @@ def check_inputs(points, kd, max_iter, tol, fixed_spaces, D, init_spaces, random
 
 def E_step(points, spaces,assignment = 'hard',verbose = False):
     """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
-    Noise is assumed to be orthogonal to spaces, gaussian, and homoscedastic. The variance is unique to each space.
     P(space_i | point) = P(point | space_i)*P(space_i)/ sum over k spaces ( P(point | space_j) * P(space_j))
     
     points: N x D np array (or less than N if EM is in batch mode)
@@ -286,12 +285,11 @@ def E_step(points, spaces,assignment = 'hard',verbose = False):
     return probabilities
 
 def E_step_DA(points, spaces,beta,verbose = False):
-    """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
-    Noise is assumed to be orthogonal to spaces, gaussian, and homoscedastic. The variance is unique to each space.
-    P(space_i | point) = P(point | space_i)*P(space_i)/ sum over k spaces ( P(point | space_j) * P(space_j))
+    """ Analog to E_step for use in deterministic annealing EM. Do not use this to compute probabilities outside that function.
     
     points: N x D np array (or less than N if EM is in batch mode)
     spaces: list of affine subspaces
+    beta: see 
     verbose: bool
 
     returns: N x K matrix of probabilities P(space | point)"""
@@ -358,10 +356,7 @@ def M_step(spaces, points, probabilities, multiprocess_spaces, verbose):
 def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4, verbose = False, silent = False, 
                              print_ownerships = False, batch_size = np.inf, batch_replace = True, multiprocess_spaces = False, 
                              min_variance = 1e-10, num_fixed_spaces = 0, set_noise_equal = False, beta_0 = 0.5, anneal_rate = 1.2):
-    """Fit k spaces to a set of points using the EM algorithm.
-    E step computes ownerships of points based on the spaces and their noise's standard deviations
-    M step fits spaces based on those ownerships and minimizing the RSS
-    standard deviations are updated based on what is implied by the M step
+    """Modified expectation_maximization that uses deterministic annealing. Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998. ISSN 08936080. doi: 10.1016/S0893- 6080(97)00133- 0.
     
     Notes: spaces must be sorted such that fixed spaces are at the end of the list or check_ownerships will be incorrect. This is currently done by the initialization functions in run_EM.
     
@@ -380,14 +375,19 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
     min_variance: float.
     num_fixed_spaces: int.
     set_noise_equal: bool.
+    beta_0: default 0.5. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
+    anneal_rate: default 1.2. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
     
     returns: spaces (list of affine subspaces), probabilities (N x K np array of P(point | space)), flag (int indicating success or failure)
     """
-    
+    if beta_0 <= 0:
+        raise ValueError('beta_0 must be 0 < beta_0 <= 1.')
+    if anneal_rate <= 1:
+        raise ValueError('anneal_rate must be > 1.')
     if verbose:
         print('initialized sigmas:',[round(s.sigma,2) for s in spaces])
     if multiprocess_spaces:
-        print('multiprocessing has significant overhead. consider trying multiprocessing=False first')
+        print('Multiprocessing is not optimized has significant overhead. multiprocessing=False may be much much faster.')
     prev = copy.deepcopy(spaces)
     flag = 0
     dims = [s.d for s in spaces]
@@ -449,7 +449,7 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
     probabilities = E_step(points, spaces, assignment = 'soft')
 
     if print_ownerships:
-        print('final ownerships: ',[round(p,1) for p in np.sum(probabilities,axis = 0)])
+        print('Final ownerships: ',[round(p,1) for p in np.sum(probabilities,axis = 0)])
     return spaces, probabilities, flag
 
 def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, verbose = False, silent = False, assignment = 'hard', 
@@ -551,7 +551,7 @@ def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initiali
             randomize_init = False, batch_size = np.inf, batch_replace = True, print_ownerships = False,
           multiprocess_spaces = False, init_spaces = [], fixed_spaces = [], min_variance = 1e-10, return_if_failed = True,
           set_noise_equal = False, DA = False, beta_0 = 0.5, anneal_rate = 1.2):
-    """ runs EM with multiple initializations and selects the maximum likelihood one.
+    """ Runs EM with multiple initializations and selects the maximum likelihood one.
     The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
     
     returns: spaces (list of affine subspaces), probabilities (N x K np array of P(point | space))
@@ -571,6 +571,9 @@ def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initiali
     min_variance: default is 1e-10. Minimum variance enforced to prevent singular covariance matrices in "soft" and "hard" assignment mode.
     return_if_failed: default True. Returns [spaces, probabilities] for last EM run if True. Returns [[],[]] if False.
     set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
+    DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
+    beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
+    anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
     """
     init_times, EM_times, models, likelihoods = [],[],[],[]
     D = len(points[0])
@@ -675,7 +678,7 @@ def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initiali
 
 ############################################ EM HELPERS #################################################################
 def batch(points, batch_size):
-    """ subsample points without replacements if a batch size is specified. otherwise return points as points_
+    """ Subsample points without replacements if a batch size is specified. otherwise return points as points_
     
     returns: min(N,batch_size) x D array of points"""
     points_ = None
@@ -729,9 +732,9 @@ def check_ownerships(probabilities, dims, num_fixed_spaces):
     return False    
             
     
-def fit_wrapper(space, points_, probabilities_):
+def fit_wrapper(space, points_, probabilities_, verbose):
     """wrapper for using multiprocessing with affine_subspace.fit"""
-    result =  space.fit(points_,probabilities_)
+    result =  space.fit(points_,probabilities_, verbose)
     return space, result
 
 def set_sigmas_eq_noise(points, probabilities, spaces, verbose):
@@ -789,12 +792,12 @@ def enforce_min_variance(spaces, min_variance, verbose):
     for i, s in enumerate(spaces):
         if s.sigma < min_std:
             if verbose:
-                print(f"out of subspace variance {s.sigma**2} < min_variance for space {i}, setting to minimum variance of {min_variance}")
+                print(f"Out of subspace variance {s.sigma**2} < min_variance for space {i}, setting to minimum variance of {min_variance}")
             s.sigma = min_std
         for a in range(s.d):
             if s.latent_sigmas[a] < min_std:
                 if verbose:
-                    print(f"latent variable #{a} variance {s.sigma**2} < min_variance for space {i}, setting to minimum variance of {min_variance}")
+                    print(f"Latent variable #{a} variance {s.sigma**2} < min_variance for space {i}, setting to minimum variance of {min_variance}")
                 s.latent_sigmas[a] = min_std
     
     

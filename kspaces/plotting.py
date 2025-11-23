@@ -202,7 +202,7 @@ def plot_plane(ax, xlim, ylim, zlim, space, color = 'crimson'):
     # Calculate z values for the plane using the equation of the plane
     zz = (-normal[0] * (xx - point1[0]) - normal[1] * (yy - point1[1])) / normal[2] +point1[2]   
    
-    ax.plot_surface(xx, yy, zz, color='crimson', alpha=0.1)
+    ax.plot_surface(xx, yy, zz, color=color, alpha=0.1)
     #xlim, ylim = clip_bounds(xlim,ylim,zlim, normal, point1) #clips boundaries on very steep planes
     # Create a mesh grid within extended x, y boundaries
     x_extended = np.linspace(xlim[0] - .1, xlim[1] + .1, 10) #slight extension required with clipping... shows up as flat region
@@ -211,7 +211,7 @@ def plot_plane(ax, xlim, ylim, zlim, space, color = 'crimson'):
     xx, yy = np.meshgrid(x_extended, y_extended)
     # Calculate z values for the plane using the equation of the plane
     zz = (-normal[0] * (xx - point1[0]) - normal[1] * (yy - point1[1])) / normal[2] +point1[2]
-    ax.plot_wireframe(xx, yy, zz, color='crimson', alpha=0.2)
+    ax.plot_wireframe(xx, yy, zz, color=color, alpha=0.2)
 
 
 
