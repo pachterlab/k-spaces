@@ -237,6 +237,9 @@ def E_step(points, spaces,assignment = 'hard',verbose = False):
      # E-step: Assign probabilities to each point for each space
     probabilities = None
     
+    if len(points.shape) == 1:
+        points = points.reshape(1,-1) #fixes bug if E_step is run on a single point passed as an array with shape (D,)
+    
     if assignment == 'closest':
         #assumes no distribution over latent space       
         distances = np.array([space.orthogonal_distance(points) for space in spaces]).T
