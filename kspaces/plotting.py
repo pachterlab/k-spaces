@@ -162,11 +162,20 @@ def plot_point_3D(ax, xlim, ylim, zlim, space, color='crimson', alpha_s = 1):
     xlim, ylim, zlim are (min,max) tuples"""
     
     ax.scatter(space.translation[0], space.translation[1], space.translation[2], s = 5, alpha = alpha_s, color=color)
-def plot_line_3D(ax, xlim, ylim, zlim, line, color = 'crimson',linestyle = '-', alpha_s = 1):
+def plot_line_3D(ax, xlim, ylim, zlim, line, color = 'crimson',linestyle = '-', alpha_s = 1, sd_length = None):
     """plot line in 3D space
     xlim, ylim, zlim are (min,max) tuples"""
-    intersections = clip_line(line, xlim, ylim,zlim)
-    ax.plot(intersections[:,0], intersections[:,1], intersections[:,2], color=color, linewidth = 1, linestyle = linestyle, alpha = alpha_s)
+    points = None
+    if sd_length is not None:
+        points = []
+        tr = line.translation
+        v = line.vectors[0]
+        std_dev = line.latent_sigmas[0]
+        points = np.array([tr - sd_length*std_dev*v,tr + sd_length*std_dev*v])
+    else:
+        points = clip_line(line, xlim, ylim,zlim)
+
+    ax.plot(points[:,0], points[:,1], points[:,2], color=color, linewidth = 1, linestyle = linestyle, alpha = alpha_s)
     
 def plot_plane(ax, xlim, ylim, zlim, space, color = 'crimson'):
     """plot plane in 3D space
