@@ -9,11 +9,11 @@ functions intended for general usage:
 - EM.E_step - given a fitted model and some data, perform assignments
 - model_selection.total_log_likelihood
 - model_selection.model_selection
-- model_selection.BIC
-- model_selection.ICL - to be uploaded in coming days
-- plotting.plot_spaces_2D - better version to be uploaded in coming days
-- plotting.plot_3D - better version to be uploaded in coming days
-- generate.generate - better version to be uploaded in coming days
+- model_selection.get_BIC
+- model_selection.get_ICL 
+- plotting.plot_spaces_2D 
+- plotting.plot_3D
+- generate.generate
 
 **EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with run_EM() fail. A buildup option is slow but also very useful for this (will be added in coming days)
 
@@ -27,11 +27,11 @@ functions intended for general usage:
 
 docstrings copied and pasted below for now:
     
-    def run_EM(points, kd = [], assignment = 'hard', objective = 'L2', max_iter=50, tol=5e-2, initializations = 1, verbose = False, silent = False, print_solution = False, 
-                randomize_init = False, batch_size = np.inf, batch_replace = True, print_ownerships = False,
-              multiprocess_spaces = False, init_spaces = [], fixed_spaces = [], min_variance = 1e-10, return_if_failed = True,
-              set_noise_equal = False, DA = False, beta_0 = 0.5, anneal_rate = 1.2):
-        """ runs EM with multiple initializations and selects the maximum likelihood one.
+    def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initializations = 1, verbose = False, silent = False, print_solution = False, 
+            randomize_init = False, batch_size = np.inf, batch_replace = True, print_ownerships = False,
+          multiprocess_spaces = False, init_spaces = [], fixed_spaces = [], min_variance = 1e-10, return_if_failed = True,
+          set_noise_equal = False, DA = False, beta_0 = 0.5, anneal_rate = 1.2):
+        """ Runs EM with multiple initializations and selects the maximum likelihood one.
         The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
         
         returns: spaces (list of affine subspaces), probabilities (N x K np array of P(point | space))
@@ -40,7 +40,6 @@ docstrings copied and pasted below for now:
         assignment: default "hard". Other options: "soft" and "closest".
         fixed spaces: list of dicts {'vec':[basis],'tr':translation} where basis vectors and translation are all lists of length D
         init spaces: list of affine_subspaces (see affine_subspace_.py) to intialize with.
-        objective: default (strongly recommended) is L2 but TLAD and L1 are options. TLAD minimizes total least absolute distance (as opposed to the sum of squared distances by L2, and L1 minimizes the manhattan distance. TLAD and L1 are slow as currently implemented and not recommended. Probabilistic model selection is not implemented for these and must be done manually.
         max_iter: maximum number of EM iterations
         tol: default 0.05. tolerance for determining EM convergence.
         initializations: default 1. 5-10 is recommended. Number of EM initializations to do. 
@@ -52,8 +51,22 @@ docstrings copied and pasted below for now:
         min_variance: default is 1e-10. Minimum variance enforced to prevent singular covariance matrices in "soft" and "hard" assignment mode.
         return_if_failed: default True. Returns [spaces, probabilities] for last EM run if True. Returns [[],[]] if False.
         set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
+        DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
+        beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
+        anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
         """
-note: objective will be removed as an argument and 'L2' will be hardcoded prior to release.
+    def model_selection(points,model,null, print_solution = False, eq_noise = False, test = 'BIC'):
+        """Perform model selection with BIC or ICL. ICL penalizes BIC with the entropy of cluster assignments. Accepts a list of affine_subspaces or a single affine_subspace for model and null, but whether a list or single space is passed in, it should be a kspaces model because likelihoods need to be calculated. In other words, if the list is not a full model fit by kspaces, affine_subspace.prior should add up to 1 over the list or should be 1 for a single space.
+        
+        points: N x D array (observations x features).
+        model: list of affine subspaces or single affine subspace.
+        null: list of affine subspaces or single affine subspace.  
+        eq_noise: bool. should be True if assignment is "closest" or set_noise_equal == True
+        test: 'BIC' or 'ICL'. if ICL, assignments will be computed with a soft-assignment E_step as ICL with hard assignment is just BIC.
+       
+        returns: 'model' or 'null'.
+    
+        """
     def E_step(points, spaces,assignment = 'hard',verbose = False, norm = 'L2'):
         """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
         Noise is assumed to be orthogonal to spaces, gaussian, and homoscedastic. The variance is unique to each space.
@@ -78,6 +91,23 @@ note: objective will be removed as an argument and 'L2' will be hardcoded prior 
         returns: total log likelihood
         """
     
-    def BIC(df,num_points,log_likelihood):
+    def get_BIC(df,num_points,log_likelihood):
         """returns BIC"""
+
+    def get_ICL(probs, points, spaces, eq_noise):
+        """returns Integrated Completed Likelihood C. Biernacki, G. Celeux, and G. Govaert. Assessing a mixture model for clustering with the integrated completed likelihood. IEEE Transactions on Pattern Analysis and Machine Intelligence, 22(7):719–725, July 2000. 
+        probs: N x k array of assignment probabilities
+        points: N x D array of points
+        spaces: list of affine_subspace objects
+        eq_noise: True/False, used to determine degrees of freedom. Was eq_noise set to True to fit the model?
+        
+        returns: ICL """
+    
+
+    def generate(spaces_,size = 1, seed = None):
+        """generates points given a list of affine_subspaces
+        
+        spaces_: list of affine_subspaces
+        size: number of data points
+        """
     
