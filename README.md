@@ -1,8 +1,8 @@
 # k-spaces
 
-kspaces code is in the process of being refactored to match sklearn's model fitting function calls. functions are documented well with docstrings but a legitimate user guide has not been written yet. below is a quick overview of the kspaces modules with a rudimentary user guide.
+k-spaces fits mixtures of low dimensional Gaussian latent variable models for data modeling, dimension reduction, and subspace learning https://www.biorxiv.org/content/10.1101/2025.11.24.690254v1. Functions are documented with docstrings but a copmlete user guide is still on the way. Below is a quick overview of the kspaces modules with a rudimentary user guide.
 
-examples will be written soon but intro_figure.ipynb (code for the kspaces paper introductory figure) has some basic usage examples.
+more examples will be uploaded soon but intro_figure.ipynb (code for the kspaces paper introductory figure) has some basic usage examples.
 
 functions intended for general usage:
 - EM.run_EM - fit a model
@@ -15,15 +15,15 @@ functions intended for general usage:
 - plotting.plot_3D
 - generate.generate
 
-**EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with run_EM() fail. A buildup option is slow but also very useful for this (will be added in coming days)
+**EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with run_EM() fail.
 
-**model_selection** - contains functions for calculating likelihoods and performing model selection with ICL, BIC, and Likelihood Ratio Test. The LRT function will be removed prior to release as it is not valid for GMMs due to nonidentifiability. recommendation is to use ICL, which penalizes BIC by the clustering entropy (it discourages selecting models with cluster components with overlapping density). (ICL not in file at the moment, will be added in coming days)
+**model_selection** - contains functions for calculating likelihoods and performing model selection with ICL or BIC. BIC suggests a model based on the number of parameters and the observed likelihood of the data. ICL additionally penalizes BIC by the clustering entropy (it discourages selecting models with cluster components with overlapping density).
 
 **affine_subspace_** - implements the affine_subspace class.
 
-**generate** - generates synthetic data from an affine subspace. Will be updated soon to generate synthetic data given an affine subspace object or a kspaces model containing affine subspace objects.
+**generate** - generates synthetic data from an affine subspace.
 
-**plotting** - visualization functions using matplotlib. Will be updated prior to release. view_3D() outputs static views of 3D data from different angles using matplotlib. 
+**plotting** - visualization functions using matplotlib. view_3D() outputs static views of 3D data from different angles using matplotlib. 
 
 docstrings copied and pasted below for now:
     
@@ -34,7 +34,7 @@ docstrings copied and pasted below for now:
         """ Runs EM with multiple initializations and selects the maximum likelihood one.
         The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
         
-        returns: spaces (list of affine subspaces), probabilities (N x K np array of P(point | space))
+        returns: spaces (list of affine subspaces), responsibilties (N x K np.array of P(space | point))
         
         kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
         assignment: default "hard". Other options: "soft" and "closest".
@@ -111,3 +111,19 @@ docstrings copied and pasted below for now:
         size: number of data points
         """
     
+    class affine_subspace:
+        def __init__(self,vectors, translation, sigma, latent_sigmas, prior, atol = 1e-8):
+            """ initializes affine subspace
+            vectors: d x D list of lists
+            translation: list of length D
+            sigma: nonnegative scalar
+            latent_sigmas: list of length d
+            prior: scalar from 0 to 1
+            """
+            self.vectors = self.vectors_to_orthonormal_basis(np.array(vectors)) #associated vector subspace is spanned by these basis vectors
+            self.translation = np.array(translation) #translation vector for "origin" of the subspace
+            self.sigma = sigma #standard deviation of orthogonal noise averaged over dimensions of complementary space
+            self.latent_sigmas = np.array(latent_sigmas) #standard deviations for data along each eigenvector of the latent space
+            self.D = len(translation) #dimensionality of ambient space
+            self.d = len(vectors) #dimensionality of subspace
+            self.prior = prior #mixture component weight for this subspace. All subspaces' priors add up to 1
