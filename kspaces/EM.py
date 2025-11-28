@@ -378,7 +378,7 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
     beta_0: default 0.5. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
     anneal_rate: default 1.2. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
     
-    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(point | space)), flag (int indicating success or failure)
+    returns: spaces (list of affine subspaces), responsibilities (N x K np array of P(space | point)), flag (int indicating success or failure)
     """
     if beta_0 <= 0:
         raise ValueError('beta_0 must be 0 < beta_0 <= 1.')
@@ -478,7 +478,7 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     num_fixed_spaces: int.
     set_noise_equal: bool.
     
-    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(point | space)), flag (int indicating success or failure)
+    returns: spaces (list of affine subspaces), responsibilities (N x K np array of P(space | point)), flag (int indicating success or failure)
     """
     
     if verbose:
@@ -554,7 +554,7 @@ def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initiali
     """ Runs EM with multiple initializations and selects the maximum likelihood one.
     The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
     
-    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(point | space))
+    returns: spaces (list of affine subspaces), responsibilities (N x K np array of P(space | point))
     
     kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
     assignment: default "hard". Other options: "soft" and "closest".
