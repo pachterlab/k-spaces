@@ -330,7 +330,7 @@ def M_step(spaces, points, probabilities, multiprocess_spaces, verbose):
     
     spaces: list of affine subspaces
     points: N x D np array (or less than N if EM is in batch mode)
-    probabilities: N x K matrix of probabilities P(point | space) (or less than N if EM is in batch mode)
+    probabilities: N x K matrix of probabilities P(space | point) (or less than N if EM is in batch mode)
     multiprocess_spaces: bool
     verbose: bool
     
