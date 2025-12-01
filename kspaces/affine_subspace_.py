@@ -28,7 +28,7 @@ def extend_basis(Q, target_dim): #chatgpt... double check it
     return Q_extended
     
 class affine_subspace:
-    def __init__(self,vectors, translation, sigma, latent_sigmas, prior, atol = 1e-8):
+    def __init__(self,vectors, translation, sigma, latent_sigmas, prior):
         """ initializes affine subspace
         vectors: d x D list of lists
         translation: list of length D
@@ -100,7 +100,7 @@ class affine_subspace:
         projections = np.matmul(np.matmul(points-self.translation, basis), basis.T) + self.translation
         return projections
     def transform(self, points):
-        """calls displacement() so the same function call as sklearn's pca can be used."""
+        """Alias for sklearn's pca.transform that calls displacement()."""
         return self.displacement(points)
     def displacement(self, points):
         """project point onto space and determine position in coordinate system defined by basis vectors and affine translation (the mean)"""

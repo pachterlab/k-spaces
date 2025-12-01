@@ -30,7 +30,7 @@ def add_fixed_spaces(k, spaces, fixed_spaces):
             spaces.append(bg_space(vectors,translation,sigma,[1]*len(translation), prior_))
     return spaces
 
-def smart_init1(points,D=2, kd = [1,1], fixed_spaces = []):
+def smart_init1(points,kd, D, fixed_spaces = []):
     """
     First initialization is nonrandom.
     Initialize with lines (or subspaces) passing from the origin to the k-means centroids
@@ -65,7 +65,7 @@ def smart_init1(points,D=2, kd = [1,1], fixed_spaces = []):
     
     return spaces
 
-def smart_init2(points,D=2, kd = [1,1], fixed_spaces = []):
+def smart_init2(points,kd, D, fixed_spaces = []):
     """
     nonrandom initialization.
     do k means to partition points, then fit on each of those points to determine initial k-spaces.
@@ -91,7 +91,7 @@ def smart_init2(points,D=2, kd = [1,1], fixed_spaces = []):
     
     return spaces
 
-def init(points,D=2,kd = [1,1], fixed_spaces = []):
+def init(points,kd, D, fixed_spaces = []):
     """intialize k affine_subspaces with dimension d using random points as translation and basis vectors
     
     points: N x D np array
@@ -330,7 +330,7 @@ def M_step(spaces, points, probabilities, multiprocess_spaces, verbose):
     
     spaces: list of affine subspaces
     points: N x D np array (or less than N if EM is in batch mode)
-    probabilities: N x K matrix of probabilities P(space | point) (or less than N if EM is in batch mode)
+    probabilities: N x K matrix of probabilities P(point | space) (or less than N if EM is in batch mode)
     multiprocess_spaces: bool
     verbose: bool
     
@@ -378,7 +378,7 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
     beta_0: default 0.5. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
     anneal_rate: default 1.2. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
     
-    returns: spaces (list of affine subspaces), responsibilities (N x K np array of P(space | point)), flag (int indicating success or failure)
+    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(space | point)), flag (int indicating success or failure)
     """
     if beta_0 <= 0:
         raise ValueError('beta_0 must be 0 < beta_0 <= 1.')
@@ -478,7 +478,7 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     num_fixed_spaces: int.
     set_noise_equal: bool.
     
-    returns: spaces (list of affine subspaces), responsibilities (N x K np array of P(space | point)), flag (int indicating success or failure)
+    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(space | point)), flag (int indicating success or failure)
     """
     
     if verbose:
@@ -547,14 +547,32 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     
 ################################### WRAPPER ############################################    
     
-def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initializations = 1, verbose = False, silent = False, print_solution = False, 
-            randomize_init = False, batch_size = np.inf, batch_replace = True, print_ownerships = False,
-          multiprocess_spaces = False, init_spaces = [], fixed_spaces = [], min_variance = 1e-10, return_if_failed = True,
-          set_noise_equal = False, DA = False, beta_0 = 0.5, anneal_rate = 1.2):
+def run_EM(points, 
+           kd, 
+           assignment = 'hard', 
+           max_iter=50, 
+           tol=5e-2, 
+           initializations = 10, 
+           verbose = False, 
+           silent = False, 
+           print_solution = False, 
+            randomize_init = False, 
+           batch_size = np.inf, 
+           batch_replace = True, 
+           print_ownerships = False,
+           multiprocess_spaces = False, 
+           init_spaces = [], 
+           fixed_spaces = [], 
+           min_variance = 1e-10, 
+           return_if_failed = True,
+          set_noise_equal = False, 
+           DA = False, 
+           beta_0 = 0.5, 
+           anneal_rate = 1.2):
     """ Runs EM with multiple initializations and selects the maximum likelihood one.
     The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
     
-    returns: spaces (list of affine subspaces), responsibilities (N x K np array of P(space | point))
+    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(space | point))
     
     kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
     assignment: default "hard". Other options: "soft" and "closest".
@@ -595,17 +613,17 @@ def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initiali
                 for f in fixed_spaces:
                     spaces.append(f)
             elif i == 0:
-                spaces = smart_init1(points,kd = kd,D=D, fixed_spaces = fixed_spaces )
+                spaces = smart_init1(points,kd,D=D, fixed_spaces = fixed_spaces )
                 
             elif i == 1:
                 try:
-                    spaces = smart_init2(points,kd = kd,D=D, fixed_spaces = fixed_spaces )
+                    spaces = smart_init2(points,kd,D=D, fixed_spaces = fixed_spaces )
                 except:
                     print('smart_init2 failed. catching exception and randomly initializing...')
-                    spaces = init(points,kd = kd,D=D, fixed_spaces = fixed_spaces)
+                    spaces = init(points,kd,D=D, fixed_spaces = fixed_spaces)
                 
         else:
-            spaces = init(points,kd = kd,D=D, fixed_spaces = fixed_spaces)
+            spaces = init(points,kd,D=D, fixed_spaces = fixed_spaces)
         
         if DA:
             spaces,probabilities, flag = expectation_maximization_DA(points, 

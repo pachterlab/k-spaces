@@ -140,6 +140,13 @@ def get_entropy(probs):
     return np.sum(entropy(probs,axis = 1))
 
 def get_ICL(probs, points, spaces, eq_noise):
+    """returns ICL
+    probs: N x k array of assignment probabilities
+    points: N x D array of points
+    spaces: list of affine_subspace objects
+    eq_noise: True/False, used to determine degrees of freedom. Was eq_noise set to True to fit the model?
+    
+    returns: ICL """
     N = probs.shape[0]
     k = probs.shape[1]
     LL = total_log_likelihood(points, spaces)
