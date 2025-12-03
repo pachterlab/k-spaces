@@ -11,7 +11,7 @@ functions intended for general usage:
 | `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace        |
 | `EM`              |`E_step`                            | given a fitted model and some data, perform assignments       |
 | `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace                             |
-| `affine_subspace_`|`affine_subspace.probability`       | compute P(points| space)                                      |
+| `affine_subspace_`|`affine_subspace.probability`       | compute P(points &#124; space)                                |
 | `affine_subspace_`|`affine_subspace.transform`         | linear dimensionality reduction of points onto space          |
 | `affine_subspace_`|`affine_subspace.projection`        | projection of points onto space, still in high dimension      |
 | `affine_subspace_`|`fixed_space`                       | class that only updates noise and component weight in EM      |
