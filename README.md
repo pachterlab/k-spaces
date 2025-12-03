@@ -49,7 +49,7 @@ If we want to project the points onto their subspaces in the high dimensional sp
 This data lies on a `d`-dimensional subspace of the `D`-dimensional space, but it is still located in the original feature space and is a `N` x `D` matrix.
 
 # Modules
-**EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with `run_EM` fail.
+**EM** - contains functions to fit a kspaces model using an EM algorithm. The option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with `run_EM` fail.
 
 **model_selection** - contains functions for calculating likelihoods and performing model selection with ICL or BIC. BIC suggests a model based on the number of parameters and the observed likelihood of the data. ICL additionally penalizes BIC by the clustering entropy (it discourages selecting models with cluster components with overlapping density).
 
