@@ -77,6 +77,8 @@ def plot_spaces_2D(ax,spaces, null = [], colors = [], scale = 10, labels = [], a
 
 
 def plot_2D(points,spaces,null = [], scale = 10, color_probabilities = [], alpha_s = 1):
+    """plot points and spaces' projections in 2D. Optionally specify a null model to be plotted in gray"""
+    
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
     ax.scatter(points[:, 0], points[:, 1], s = 1, color=color_by_cluster(color_probabilities), marker='o', label='Points')

@@ -248,7 +248,7 @@ def E_step(points, spaces,assignment = 'hard',verbose = False):
         assignments[rows, max_indices] = 1.0
         probabilities = assignments
         
-    elif assignment =='soft' or assignment == 'hard':
+    elif assignment in ('soft','hard'):
         #probabilistic soft assignment with distributions over latent and complementary space
         
         log_probabilities = np.array([(space.probability(points, log = True)+np.log(space.prior)) for space in spaces]).T
@@ -264,20 +264,19 @@ def E_step(points, spaces,assignment = 'hard',verbose = False):
             probabilities = assignments    
         
         if assignment == 'soft':
-            #probabilities /= probabilities.sum(axis=1, keepdims=True)
-            log_probabilities = log_probabilities - logsumexp(log_probabilities,axis = 1).reshape(len(log_probabilities),1)
+            log_probabilities  -= logsumexp(log_probabilities,axis = 1).reshape(len(log_probabilities),1)
             probabilities = np.exp(log_probabilities)    
             
-            def round_if_0_or_1(arr, tol=1e-10): #np.cov() threw an error when weight was 1.57e-17 for an entry
-                # Round values close to 0 or 1
-                rounded = np.where(np.isclose(arr, 1.0, atol=tol), 1.0, arr)
-                rounded = np.where(np.isclose(rounded, 0.0, atol=tol), 0.0, rounded)
-                rounded = np.where(np.isnan(rounded), 0.0, rounded)
-                return rounded
-            
-            probabilities =  round_if_0_or_1(probabilities)
-
-        
+            #def round_if_0_or_1(arr, tol=1e-10): #np.cov() threw an error when weight was 1.57e-17 for an entry
+            #    # Round values close to 0 or 1
+            #    rounded = np.where(np.isclose(arr, 1.0, atol=tol), 1.0, arr)
+            #    rounded = np.where(np.isclose(rounded, 0.0, atol=tol), 0.0, rounded)
+            #    rounded = np.where(np.isnan(rounded), 0.0, rounded)
+            #    return rounded
+            #
+            #probabilities =  round_if_0_or_1(probabilities)
+            probabilities[probabilities < 1e-10] = 0.0 #np.cov() threw an error when weight was 1.57e-17 for an entry
+            probabilities[probabilities > 1 - 1e-10] = 1.0
         
     if verbose:    
         print('updated ownerships: ',[round(p,2) for p in np.sum(probabilities,axis = 0)])
@@ -365,9 +364,8 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
     EM_times: list of lists (shape: number of intializations, 2).
     max_iter: int.
     tol: float.
-    verbose: bool.
-    multiprocess_spaces: bool.
-    assignment: "hard" "closest" or "soft".
+    verbose: bool. verbose print messages at each EM step.
+    silent: bool. suppresses all print messages.
     print_ownerships: bool.
     batch_size: int (default is np.inf however).
     batch_replace: bool.
@@ -403,7 +401,7 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
 
             # E-step: Assign probabilities to each point for each space
 
-            probabilities = E_step_DA(points_, spaces, beta, verbose= verbose,)
+            probabilities = E_step_DA(points_, spaces, beta, verbose= verbose)
 
             tE = time.time()
 
@@ -452,9 +450,21 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
         print('Final ownerships: ',[round(p,1) for p in np.sum(probabilities,axis = 0)])
     return spaces, probabilities, flag
 
-def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, verbose = False, silent = False, assignment = 'hard', 
-                             print_ownerships = False, batch_size = np.inf, batch_replace = True, multiprocess_spaces = False, 
-                             min_variance = 1e-10, num_fixed_spaces = 0, set_noise_equal = False):
+def expectation_maximization(points, 
+                             spaces, 
+                             EM_times,
+                             max_iter=100,
+                             tol=5e-4, 
+                             verbose = False, 
+                             silent = False, 
+                             assignment = 'hard',
+                             print_ownerships = False, 
+                             batch_size = np.inf, 
+                             batch_replace = True, 
+                             multiprocess_spaces = False, 
+                             min_variance = 1e-10, 
+                             num_fixed_spaces = 0, 
+                             set_noise_equal = False):
     """Fit k spaces to a set of points using the EM algorithm.
     E step computes ownerships of points based on the spaces and their noise's standard deviations
     M step fits spaces based on those ownerships and minimizing the RSS
@@ -470,6 +480,7 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     verbose: bool.
     multiprocess_spaces: bool.
     assignment: "hard" "closest" or "soft".
+
     print_ownerships: bool.
     batch_size: int (default is np.inf however).
     batch_replace: bool.

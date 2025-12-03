@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.cluster import MiniBatchKMeans
 from scipy.linalg import orth
+import scipy.linalg
 import sklearn
 import copy
 
@@ -55,20 +56,18 @@ class affine_subspace:
         """given k vectors of dimension D spanning a vector subspace, return an orthonormal basis
         vectors: k x D array
         returns: k x D array"""
-        basis = np.array([])
         if len(vectors) == 0:
-            return basis
+            return np.array([])
         elif len(vectors) == 1: #np.linalg.orth expects a matrix not a single vector
-            basis = (vectors/np.linalg.norm(vectors))
+            return (vectors/np.linalg.norm(vectors))
         else: 
             if np.allclose(np.linalg.norm(vectors, axis  = 1),1.0): #already an orthonormal basis constructed from space.fit
-                basis = vectors 
+                return vectors 
             else: #np.linalg.orth finds orthonormal basis for the span of the column vectors (returns D x k matrix)
                 basis = orth(vectors.T).T
                 if basis.shape[0] != len(vectors):
                     basis = extend_basis(basis, len(vectors))
-               
-        return basis
+                return basis
     
     def update_vectors(self, vectors):
         """computes orthonormal basis from vectors and updates self.vectors
@@ -76,29 +75,34 @@ class affine_subspace:
         basis = self.vectors_to_orthonormal_basis(vectors)
         self.vectors = basis
             
-    def orthogonal_distance(self,points):
-        """point should be NxD array"""
+    def orthogonal_distance(self,points, squared = False):
+        """point should be NxD array
+        
+        if squared == True, returns squared orthogonal distance"""
         projections  = self.projection(points)
-        if len(points.shape) ==1: #single point
-            return np.linalg.norm(points-projections)
-        else:
-            return np.linalg.norm(points-projections,axis = 1)
+        if squared == False:
+            if len(points.shape) ==1: #single point
+                return np.linalg.norm(points-projections)
+            else:
+                return np.linalg.norm(points-projections,axis = 1)
+        if squared == True:
+            if len(points.shape) ==1: #single point
+                return np.sum((points-projections)**2)
+            else:
+                return np.sum((points-projections)**2, axis=1)
+
+       
     
     def projection(self,points):
         """project point onto space"""
-        basis = None
-        if len(self.vectors) == 0:
+        if self.d == 0:
             return self.translation
-        elif len(self.vectors) == 1: #np.linalg.orth expects a matrix not a single vector
-            basis = (self.vectors/np.linalg.norm(self.vectors)).T
-        else: #np.linalg.orth finds orthonormal basis for the span of the column vectors (returns D x k matrix)
-            basis = orth(self.vectors.T) 
-        #project
-        #NxD points
-        #DxK basis
-        #NxD x DxK x KxD
-        projections = np.matmul(np.matmul(points-self.translation, basis), basis.T) + self.translation
-        return projections
+        else:
+            diff = points - self.translation  # NxD
+            projections = diff @ self.vectors.T @ self.vectors + self.translation
+            return projections
+    
+   
     def transform(self, points):
         """Alias for sklearn's pca.transform that calls displacement()."""
         return self.displacement(points)
@@ -108,27 +112,44 @@ class affine_subspace:
             raise RuntimeError('Displacement within latent space is undefined for 0-D space')
         
         return np.dot(points - self.translation, self.vectors.T)
-    def probability(self,points, log = False):
+   
+        
+    def probability(self, points, log=False):
         """proportional to P(point | self)
         ignores 1/sqrt(2 pi) term in normal pdf
-        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection.py does this)"""
-        #return norm.pdf(self.orthogonal_distance(points), loc=0, scale=self.sigma)
-        log_probs = - (self.D - self.d) * (np.log(self.sigma) )* np.ones(len(points)) #complementary space
-            
-        #log_probs += - 0.5 * (self.D - self.d) * (self.orthogonal_distance(points) / self.sigma)**2 # complementary space
-        log_probs += - 0.5 * (self.orthogonal_distance(points) / self.sigma)**2 # edited 9/10/24
+        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection.py does this). Old version was more readable and used affine_subspace methods but was slower"""
+       
+    
+        N = points.shape[0]
+        diff = points - self.translation  # NxD
 
-        if self.d != 0: #latent space has dimension
-            log_probs += - sum(np.log(self.latent_sigmas))
-            log_probs += - 0.5 * np.sum(np.divide(self.displacement(points), self.latent_sigmas )**2, axis = 1) # latent space
-            
+        # Complementary space log-prob
+        log_probs = -(self.D - self.d) * np.log(self.sigma) * np.ones(N, dtype=np.float64)
+
+        if self.d > 0:
+            # Precompute latent coordinates once
+            coords = diff @ self.vectors.T  # NxD latent coordinates
+            # Project back to space: proj = coords @ self.vectors
+            proj = coords @ self.vectors    # NxD
+        else:
+            coords = None
+            proj = np.zeros_like(diff)
+
+        # Complementary space squared distance (orthogonal distance)
+        orth_sq = np.sum((diff - proj)**2, axis=1)
+        log_probs += -0.5 * orth_sq / self.sigma**2
+
+        if self.d != 0:
+            # Latent space contribution
+            log_probs -= np.sum(np.log(self.latent_sigmas))
+            log_probs -= 0.5 * np.sum((coords / self.latent_sigmas)**2, axis=1)
+
         if log:
             return log_probs
         else:
             return np.exp(log_probs)
-        
-        
-        
+    
+
         
     def fit(self,points,responsibilities, verbose):
         """ fits subspace to points using PCA/SVD if responsibilities are all 0 or 1, otherwise with np.covariance.
@@ -136,16 +157,18 @@ class affine_subspace:
         translation = None
         vectors = None
         latent_sigmas = None
+        sigma = None
         alg = 'sklearn.decomposition.pca'
-        if np.any((responsibilities != 0) & (responsibilities != 1)): #for soft assignment
+        if not np.all((responsibilities == 0) | (responsibilities == 1)): #for soft assignment
             alg = 'np.cov'
             
         mask = responsibilities.astype(bool) #in the future, this should be done in the M step to avoid copying data in multiprocessing
-        if len(points[mask]) <= self.d:
+
+        if np.sum(mask) <= self.d:
              alg = 'np.cov'
 
         
-        if self.d == 0 and len(points[mask]) == 1:
+        if self.d == 0 and np.sum(mask) == 1:
             translation = points[mask][0]
             vectors = []
             latent_sigmas = [0] #will trigger enforce_min_variance in EM.py
@@ -154,18 +177,18 @@ class affine_subspace:
             
             
             #0-center the data
+            mean = None
+            
             mean = np.average(points, axis = 0, weights = responsibilities)
-           
+            
             points_ = points - mean
             translation = mean
             
             #weighted covariance matrix
-
             cov = np.cov(points_, rowvar = False, aweights = responsibilities) #np.cov is the sample covariance by default, while np.var is the population variance
             
             #eigenvalues and eigenvectors
             eigvals, eigvecs = np.linalg.eig(cov)
-            
             
             #handle rare numerical error
             if np.iscomplexobj(eigvals):
@@ -180,7 +203,10 @@ class affine_subspace:
             
             #latent vector standard deviations are square roots of eigenvalues
             latent_sigmas = np.sqrt(eigvals[:self.d])
-           
+            
+            #sigma is the mean discarded variance (also the per-dimension mean squared orthogonal residual length, but it is already almost computed here in the eigenvalues)
+            sigma = np.sqrt(np.mean(eigvals[self.d:]))
+            
             #latent vectors are the top d eigenvectors
             vectors = eigvecs[:self.d]
             
@@ -202,18 +228,23 @@ class affine_subspace:
         self.translation = translation
         self.update_latent_sigmas(latent_sigmas)
         self.update_vectors(vectors)
-        self.update_sigma(points,responsibilities, verbose)
+        self.update_sigma(points,responsibilities, verbose, sigma = sigma)
         return self
-    
-    def update_sigma(self,points,responsibilities_, verbose):
+
+
+    def update_sigma(self,points,responsibilities_, verbose,sigma = None):
         """In the event of 0 total responsibility, a variance of 0 is assigned. This triggers enforce_min_variance to impose a minimum variance as 0 variance leads to an undefined PDF.
         """
-        if np.sum(responsibilities_) == 0.0:
+        sum_responsibilities = np.sum(responsibilities_)
+        if sum_responsibilities == 0.0:
             self.sigma = 0
             return
+        if sigma is not None: #was precomputed
+            self.sigma = sigma
+            return
         
-        residuals = self.orthogonal_distance(points)
-        variance = np.dot(responsibilities_,(residuals**2))/np.sum(responsibilities_)
+        squared_residuals = self.orthogonal_distance(points, squared = True)
+        variance = np.dot(responsibilities_,squared_residuals)/sum_responsibilities
         self.sigma =  np.sqrt(variance/(self.D - self.d))
             
     def update_latent_sigmas(self, latent_sigmas):
@@ -378,3 +409,71 @@ class bg_space(affine_subspace):
         return self
     def __str__(self):
         return f'background space: \n basis: \n {self.vectors} \n translation: {self.translation} \n sigma: {self.sigma}'
+    
+#@numba.njit
+#def weighted_mean(points, w):
+#    total = np.sum(w)
+#    return np.sum(points * w[:, None], axis=0) / total
+
+
+#@numba.njit
+#def numba_probability(points, translation, D, d, sigma, latent_sigmas, vectors, log):
+#        """proportional to P(point | self)
+#        ignores 1/sqrt(2 pi) term in normal pdf
+#        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection.py does this). Old version was more readable and used affine_subspace methods but was slower"""
+#        N = points.shape[0]
+#        diff = points - translation  # NxD
+#
+#        # Complementary space log-prob
+#        log_probs = -(D - d) * np.log(sigma) * np.ones(N, dtype=np.float64)
+#
+#        if d > 0:
+#            # Precompute latent coordinates once
+#            coords = diff @ vectors.T  # NxD latent coordinates
+#            # Project back to space: proj = coords @ self.vectors
+#            proj = coords @ vectors    # NxD
+#        else:
+#            coords = None
+#            proj = np.zeros_like(diff)
+#
+#        # Complementary space squared distance (orthogonal distance)
+#        orth_sq = np.sum((diff - proj)**2, axis=1)
+#        log_probs += -0.5 * orth_sq / sigma**2
+#
+#        if d != 0:
+#            # Latent space contribution
+#            log_probs -= np.sum(np.log(latent_sigmas))
+#            log_probs -= 0.5 * np.sum((coords / latent_sigmas)**2, axis=1)
+#
+#        if log:
+#            return log_probs
+#        else:
+#            return np.exp(log_probs)
+#            log_probs -= np.sum(np.log(latent_sigmas))
+#            log_probs -= 0.5 * np.sum((coords / latent_sigmas)**2, axis=1)
+#
+#        if log:
+#            return log_probs
+#        else:
+#            return np.exp(log_probs)
+
+def ensure_vector_directions(spaces, inplace = True):
+    """checks direction of each basis vector and flips them (reverses sign) as needed to point in a positive direction.
+    Specifically, checks whether dot product of each basis vector with <1,1,1,...,1> is positive. Flips if negative.
+    
+    """
+    
+    spaces_ = spaces
+    if inplace == False:
+        spaces_ = [s.copy() for s in spaces]
+    one_vector = [1]*spaces[0].D
+    for s in spaces_:
+        vecs = []
+        for v in s.vectors:
+            if np.dot(one_vector,v) < 0:
+                vecs.append(-1*v)
+            else:
+                vecs.append(v)
+        s.vectors = np.array(vecs)
+    if inplace == False:
+        return spaces_
