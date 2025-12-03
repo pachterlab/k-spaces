@@ -21,11 +21,7 @@ functions intended for general usage:
 | `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline             |
 | `generate`        |`generate`                          | generate synthetic data from a k-spaces model                 |
 
-```bash
-vk ref -h
-vk count -h
-...
-```
+
 # Modules
 **EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with run_EM() fail.
 
@@ -38,49 +34,70 @@ vk count -h
 **plotting** - visualization functions using matplotlib. view_3D() outputs static views of 3D data from different angles using matplotlib. 
 
 # Documentation for commonly used functions:
-All functions have docstrings. Here are some functions intended for general use
+All functions have docstrings that can be displayed in a notebook with `<kbd>shift<\kbd> + <kbd>tab<\kbd>`. Here are some functions intended for general use:
 
-    ```python
-    def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initializations = 1, verbose = False, silent = False, print_solution = False, 
-            randomize_init = False, batch_size = np.inf, batch_replace = True, print_ownerships = False,
-          multiprocess_spaces = False, init_spaces = [], fixed_spaces = [], min_variance = 1e-10, return_if_failed = True,
-          set_noise_equal = False, DA = False, beta_0 = 0.5, anneal_rate = 1.2):
-        """ Runs EM with multiple initializations and selects the maximum likelihood one.
-        The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
-        
-        returns: spaces (list of affine subspaces), responsibilties (N x K np.array of P(space | point))
-        
-        kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
-        assignment: default "hard". Other options: "soft" and "closest".
-        fixed spaces: list of dicts {'vec':[basis],'tr':translation} where basis vectors and translation are all lists of length D
-        init spaces: list of affine_subspaces (see affine_subspace_.py) to intialize with.
-        max_iter: maximum number of EM iterations
-        tol: default 0.05. tolerance for determining EM convergence.
-        initializations: default 1. 5-10 is recommended. Number of EM initializations to do. 
-        verbose: default False (recommended). Optionally can be set to True to print out information about spaces in each EM iteration as EM converges.
-        print_solution: default False. Print out the spaces. You can also print the spaces out with print(space), and the space's principal axes, translation, latent space standard deviations, complementary space noise standard deviation, and total ownership of points (prior) will be displayed.
-        multiprocess_spaces = default False. Process each space in parallel in the M step of EM. Useful if fitting many spaces, but if doing many separate kspaces runs (i.e. running kspaces on 100 different pairs of genes) it will be faster to write a wrapper to run kspaces itself in parallel as multiprocessing in python has overhead.
-        batch_size: default is np.inf (no batch; use full dataset) batch size for EM iterations. 
-        batch_replace: default is True. Sample with/without replacement if using batches.
-        min_variance: default is 1e-10. Minimum variance enforced to prevent singular covariance matrices in "soft" and "hard" assignment mode.
-        return_if_failed: default True. Returns [spaces, probabilities] for last EM run if True. Returns [[],[]] if False.
-        set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
-        DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
-        beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
-        anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
-        """
+```python
+    def run_EM(points, 
+           kd, 
+           assignment = 'hard', 
+           max_iter=50, 
+           tol=5e-2, 
+           initializations = 10, 
+           verbose = False, 
+           silent = False, 
+           print_solution = False, 
+            randomize_init = False, 
+           batch_size = np.inf, 
+           batch_replace = True, 
+           print_ownerships = False,
+           multiprocess_spaces = False, 
+           init_spaces = [], 
+           fixed_spaces = [], 
+           min_variance = 1e-10, 
+           return_if_failed = True,
+          set_noise_equal = False, 
+           DA = False, 
+           beta_0 = 0.5, 
+           anneal_rate = 1.2):
+    """ Runs EM with multiple initializations and selects the maximum likelihood one.
+    The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
+    
+    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(space | point))
+    
+    kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
+    assignment: default "hard". Other options: "soft" and "closest".
+    fixed spaces: list of dicts {'vec':[basis],'tr':translation} where basis vectors and translation are all lists of length D
+    init spaces: list of affine_subspaces (see affine_subspace_.py) to intialize with.
+    max_iter: maximum number of EM iterations
+    tol: default 0.05. tolerance for determining EM convergence.
+    initializations: default 1. 5-10 is recommended. Number of EM initializations to do. 
+    verbose: default False (recommended). Optionally can be set to True to print out information about spaces in each EM iteration as EM converges.
+    print_solution: default False. Print out the spaces. You can also print the spaces out with print(space), and the space's principal axes, translation, latent space standard deviations, complementary space noise standard deviation, and total ownership of points (prior) will be displayed.
+    multiprocess_spaces = default False. Process each space in parallel in the M step of EM. Useful if fitting many spaces, but if doing many separate kspaces runs (i.e. running kspaces on 100 different pairs of genes) it will be faster to write a wrapper to run kspaces itself in parallel as multiprocessing in python has overhead.
+    batch_size: default is np.inf (no batch; use full dataset) batch size for EM iterations. 
+    batch_replace: default is True. Sample with/without replacement if using batches.
+    min_variance: default is 1e-10. Minimum variance enforced to prevent singular covariance matrices in "soft" and "hard" assignment mode.
+    return_if_failed: default True. Returns [spaces, probabilities] for last EM run if True. Returns [[],[]] if False.
+    set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
+    DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
+    beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
+    anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
+    """
+```
+```python
     def model_selection(points,model,null, print_solution = False, eq_noise = False, test = 'BIC'):
         """Perform model selection with BIC or ICL. ICL penalizes BIC with the entropy of cluster assignments. Accepts a list of affine_subspaces or a single affine_subspace for model and null, but whether a list or single space is passed in, it should be a kspaces model because likelihoods need to be calculated. In other words, if the list is not a full model fit by kspaces, affine_subspace.prior should add up to 1 over the list or should be 1 for a single space.
         
-        points: N x D array (observations x features).
+        points: N x D array.
         model: list of affine subspaces or single affine subspace.
         null: list of affine subspaces or single affine subspace.  
         eq_noise: bool. should be True if assignment is "closest" or set_noise_equal == True
-        test: 'BIC' or 'ICL'. if ICL, assignments will be computed with a soft-assignment E_step as ICL with hard assignment is just BIC.
+        test: 'BIC' or 'ICL'. default 'BIC'. if ICL, assignments will be computed with a soft-assignment E_step as ICL with hard assignment is just BIC.
        
         returns: 'model' or 'null'.
     
         """
+
     def fit_single_space(points,d, min_variance = 1e-10):
         """ fits a single space with PCA
         points: N x D array
@@ -88,7 +105,8 @@ All functions have docstrings. Here are some functions intended for general use
         min_variance: float. minimum variance added if variance along a dimension is zero to avoid a singular covariance matrix
 
         returns: affine_subspace"""
-    
+```
+```python    
     def E_step(points, spaces,assignment = 'hard',verbose = False):
     """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
     P(space_i | point) = P(point | space_i)*P(space_i)/ sum over k spaces ( P(point | space_j) * P(space_j))
@@ -100,7 +118,17 @@ All functions have docstrings. Here are some functions intended for general use
     
     returns: N x K matrix of probabilities P(space | point)"""
          
-    
+ ```
+```python  
+ def transform(self, points):
+        """Alias for self.displacement to match the call for sklearn's pca.transform.
+        
+        points: N x D array
+        
+        returns: N x d array"""
+        return self.displacement(points)
+```
+```python   
     def total_log_likelihood(points, spaces, print_solution= False):
         """Calculate the Gaussian likelihood of the points given the lines using log sum exp.
             
@@ -110,10 +138,12 @@ All functions have docstrings. Here are some functions intended for general use
         
         returns: total log likelihood
         """
-         
+```
+```python         
     def get_BIC(df,num_points,log_likelihood):
         """returns BIC"""
-        
+```
+```python        
     def get_ICL(probs, points, spaces, eq_noise):
         """returns Integrated Completed Likelihood C. Biernacki, G. Celeux, and G. Govaert. Assessing a mixture model for clustering with the integrated completed likelihood. IEEE Transactions on Pattern Analysis and Machine Intelligence, 22(7):719–725, July 2000. 
         probs: N x k array of assignment probabilities
@@ -123,14 +153,19 @@ All functions have docstrings. Here are some functions intended for general use
         
         returns: ICL """
     
-        
-    def generate(spaces_,size = 1, seed = None):
-        """generates points given a list of affine_subspaces
-        
-        spaces_: list of affine_subspaces
-        size: number of data points
-        """
-          
+```
+```python        
+    def generate(spaces,size = 1, seed = None):
+    """generates points given a list of affine_subspaces
+    
+    spaces: list of affine_subspaces (or a single affine subspace)
+    size: default 1. number of data points
+    seed: default None. random seed for numpy
+    
+    returns size x D array of points, where D is specified by the spaces.
+    """
+```
+```python          
     class affine_subspace:
         def __init__(self,vectors, translation, sigma, latent_sigmas, prior):
             """ initializes affine subspace
@@ -147,4 +182,4 @@ All functions have docstrings. Here are some functions intended for general use
             self.D = len(translation) #dimensionality of ambient space
             self.d = len(vectors) #dimensionality of subspace
             self.prior = prior #mixture component weight for this subspace. All subspaces' priors add up to 1
-        ```
+```

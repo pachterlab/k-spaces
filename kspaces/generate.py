@@ -2,6 +2,7 @@ import numpy as np
 from .affine_subspace_ import vectors_to_orthonormal_basis
 
 def check_inputs(spaces):
+    """helper to check that spaces match ambient dimension"""
     for s in spaces:
         if s.prior < 0:
             raise ValueError(f'Component weight s.prior {s.prior} < 0')

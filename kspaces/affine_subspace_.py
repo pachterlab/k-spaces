@@ -104,7 +104,11 @@ class affine_subspace:
     
    
     def transform(self, points):
-        """Alias for sklearn's pca.transform that calls displacement()."""
+        """Alias for self.displacement to match the call for sklearn's pca.transform.
+        
+        points: N x D array
+        
+        returns: N x d array"""
         return self.displacement(points)
     def displacement(self, points):
         """project point onto space and determine position in coordinate system defined by basis vectors and affine translation (the mean)"""
@@ -357,7 +361,8 @@ def check_subspace_equivalency(space_1, space_2, tolerance = 5e-4, check_sigma =
 #    return np.array(subspace_array).flatten()
 #
     
-def orthogonal_distance(subspace_array,D,points):   
+def orthogonal_distance(subspace_array,D,points):  
+    """unused function to be deleted"""
     translation, vectors = unpack_subspace_array(subspace_array,D)
 
     basis = vectors_to_orthonormal_basis(vectors).T
