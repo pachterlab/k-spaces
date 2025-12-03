@@ -67,6 +67,7 @@ docstrings copied and pasted below for now:
     
         """
         ```
+        
         ```python
     def E_step(points, spaces,assignment = 'hard',verbose = False, norm = 'L2'):
         """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
