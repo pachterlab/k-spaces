@@ -94,7 +94,11 @@ class affine_subspace:
        
     
     def projection(self,points):
-        """project point onto space"""
+        """project point onto subspace. The subspace is low dimensional but the points are still in high dimensional space.
+        
+        points: N x D array
+        
+        returns: N x D array"""
         if self.d == 0:
             return self.translation
         else:
@@ -118,10 +122,14 @@ class affine_subspace:
         return np.dot(points - self.translation, self.vectors.T)
    
         
-    def probability(self, points, log=False):
-        """proportional to P(point | self)
-        ignores 1/sqrt(2 pi) term in normal pdf
-        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection.py does this). Old version was more readable and used affine_subspace methods but was slower"""
+    def probability(self, points, log=False, true_val = False):
+        """By default returns a value proportional to P(point | self) and ignores 1/sqrt(2 pi) term in normal pdf but can be made exact by multiplying result by 1/(2 pi)^ D/2 with true_val = True.
+        
+        points: N x D array
+        log: bool. default False. Whether to return log probability or probability
+        true_val: bool. default False. If True, multiply the constant 1/(2 pi)^ D/2 to get the exact probability rather than a proportional value.
+        
+        returns: (log) probability"""
        
     
         N = points.shape[0]
@@ -147,7 +155,8 @@ class affine_subspace:
             # Latent space contribution
             log_probs -= np.sum(np.log(self.latent_sigmas))
             log_probs -= 0.5 * np.sum((coords / self.latent_sigmas)**2, axis=1)
-
+        if true_val:
+            log_probs *= 1/(2*np.pi)**(self.D/2)
         if log:
             return log_probs
         else:

@@ -8,12 +8,12 @@ functions intended for general usage:
 |module             | function or class                  | short description                                             |
 |-------------------|------------------------------------|---------------------------------------------------------------|
 | `EM`              |`run_EM`                            | given data, construct and fit a model                         |
-| `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace        |
 | `EM`              |`E_step`                            | given a fitted model and some data, perform assignments       |
+| `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace        |
 | `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace                             |
-| `affine_subspace_`|`affine_subspace.probability`       | compute P(points &#124; space)                                |
 | `affine_subspace_`|`affine_subspace.transform`         | linear dimensionality reduction of points onto space          |
 | `affine_subspace_`|`affine_subspace.projection`        | projection of points onto space, still in high dimension      |
+| `affine_subspace_`|`affine_subspace.probability`       | compute P(points &#124; space)                                |
 | `affine_subspace_`|`fixed_space`                       | class that only updates noise and component weight in EM      |
 | `model_selection` |`total_log_likelihood`              | compute the observed log likelihood of the data               |
 | `model_selection` |`model_selection`                   | perform model selection using BIC or ICL                      |
@@ -34,7 +34,7 @@ functions intended for general usage:
 **plotting** - visualization functions using matplotlib. view_3D() outputs static views of 3D data from different angles using matplotlib. 
 
 # Documentation for commonly used functions:
-All functions have docstrings that can be displayed in a notebook with `<kbd>shift<\kbd> + <kbd>tab<\kbd>`. Here are some functions intended for general use:
+All functions have docstrings that can be displayed in a notebook with <kbd>shift<\kbd> `+` <kbd>tab<\kbd>. Here are some functions intended for general use:
 
 ```python
     def run_EM(points, 
@@ -84,28 +84,6 @@ All functions have docstrings that can be displayed in a notebook with `<kbd>shi
     anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
     """
 ```
-```python
-    def model_selection(points,model,null, print_solution = False, eq_noise = False, test = 'BIC'):
-        """Perform model selection with BIC or ICL. ICL penalizes BIC with the entropy of cluster assignments. Accepts a list of affine_subspaces or a single affine_subspace for model and null, but whether a list or single space is passed in, it should be a kspaces model because likelihoods need to be calculated. In other words, if the list is not a full model fit by kspaces, affine_subspace.prior should add up to 1 over the list or should be 1 for a single space.
-        
-        points: N x D array.
-        model: list of affine subspaces or single affine subspace.
-        null: list of affine subspaces or single affine subspace.  
-        eq_noise: bool. should be True if assignment is "closest" or set_noise_equal == True
-        test: 'BIC' or 'ICL'. default 'BIC'. if ICL, assignments will be computed with a soft-assignment E_step as ICL with hard assignment is just BIC.
-       
-        returns: 'model' or 'null'.
-    
-        """
-
-    def fit_single_space(points,d, min_variance = 1e-10):
-        """ fits a single space with PCA
-        points: N x D array
-        d: int. dimension of space to fit
-        min_variance: float. minimum variance added if variance along a dimension is zero to avoid a singular covariance matrix
-
-        returns: affine_subspace"""
-```
 ```python    
     def E_step(points, spaces,assignment = 'hard',verbose = False):
     """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
@@ -119,6 +97,33 @@ All functions have docstrings that can be displayed in a notebook with `<kbd>shi
     returns: N x K matrix of probabilities P(space | point)"""
          
  ```
+```python
+    def fit_single_space(points,d, min_variance = 1e-10):
+        """ fits a single space with PCA
+        points: N x D array
+        d: int. dimension of space to fit
+        min_variance: float. minimum variance added if variance along a dimension is zero to avoid a singular covariance matrix
+
+        returns: affine_subspace"""
+```
+```python          
+    class affine_subspace:
+        def __init__(self,vectors, translation, sigma, latent_sigmas, prior):
+            """ initializes affine subspace
+            vectors: d x D list of lists
+            translation: list of length D
+            sigma: nonnegative scalar
+            latent_sigmas: list of length d
+            prior: scalar from 0 to 1
+            """
+            self.vectors = self.vectors_to_orthonormal_basis(np.array(vectors)) #associated vector subspace is spanned by these basis vectors
+            self.translation = np.array(translation) #translation vector for "origin" of the subspace
+            self.sigma = sigma #standard deviation of orthogonal noise averaged over dimensions of complementary space
+            self.latent_sigmas = np.array(latent_sigmas) #standard deviations for data along each eigenvector of the latent space
+            self.D = len(translation) #dimensionality of ambient space
+            self.d = len(vectors) #dimensionality of subspace
+            self.prior = prior #mixture component weight for this subspace. All subspaces' priors add up to 1
+```
 ```python  
  def transform(self, points):
         """Alias for self.displacement to match the call for sklearn's pca.transform.
@@ -128,6 +133,40 @@ All functions have docstrings that can be displayed in a notebook with `<kbd>shi
         returns: N x d array"""
         return self.displacement(points)
 ```
+```python
+ def projection(self,points):
+        """project point onto subspace. The subspace is low dimensional but the points are still in high dimensional space.
+        
+        points: N x D array
+        
+        returns: N x D array"""
+```
+```python
+    def probability(self, points, log=False, true_val = False):
+        """By default returns a value proportional to P(point | self) and ignores 1/sqrt(2 pi) term in normal pdf but can be made exact by multiplying result by 1/(2 pi)^ D/2 with true_val = True.
+
+        points: N x D array
+        log: bool. default False. Whether to return log probability or probability
+        true_val: bool. default False. If True, multiply the constant 1/(2 pi)^ D/2 to get the exact probability rather than a proportional value.
+
+        returns: (log) probability"""
+```
+```python
+    def model_selection(points,model,null, print_solution = False, eq_noise = False, test = 'BIC'):
+        """Perform model selection with BIC or ICL. ICL penalizes BIC with the entropy of cluster assignments. Accepts a list of affine_subspaces or a single affine_subspace for model and null, but whether a list or single space is passed in, it should be a kspaces model because likelihoods need to be calculated. In other words, if the list is not a full model fit by kspaces, affine_subspace.prior should add up to 1 over the list or should be 1 for a single space.
+        
+        points: N x D array.
+        model: list of affine subspaces or single affine subspace.
+        null: list of affine subspaces or single affine subspace.  
+        eq_noise: bool. should be True if assignment is "closest" or set_noise_equal == True
+        test: 'BIC' or 'ICL'. default 'BIC'. if ICL, assignments will be computed with a soft-assignment E_step as ICL with hard assignment is just BIC.
+       
+        returns: 'model' or 'null'.
+    
+        """
+```
+
+
 ```python   
     def total_log_likelihood(points, spaces, print_solution= False):
         """Calculate the Gaussian likelihood of the points given the lines using log sum exp.
@@ -164,22 +203,4 @@ All functions have docstrings that can be displayed in a notebook with `<kbd>shi
     
     returns size x D array of points, where D is specified by the spaces.
     """
-```
-```python          
-    class affine_subspace:
-        def __init__(self,vectors, translation, sigma, latent_sigmas, prior):
-            """ initializes affine subspace
-            vectors: d x D list of lists
-            translation: list of length D
-            sigma: nonnegative scalar
-            latent_sigmas: list of length d
-            prior: scalar from 0 to 1
-            """
-            self.vectors = self.vectors_to_orthonormal_basis(np.array(vectors)) #associated vector subspace is spanned by these basis vectors
-            self.translation = np.array(translation) #translation vector for "origin" of the subspace
-            self.sigma = sigma #standard deviation of orthogonal noise averaged over dimensions of complementary space
-            self.latent_sigmas = np.array(latent_sigmas) #standard deviations for data along each eigenvector of the latent space
-            self.D = len(translation) #dimensionality of ambient space
-            self.d = len(vectors) #dimensionality of subspace
-            self.prior = prior #mixture component weight for this subspace. All subspaces' priors add up to 1
 ```
