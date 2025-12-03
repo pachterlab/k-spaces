@@ -34,7 +34,7 @@ Here is a basic example:
 
 `spaces, responsibilities = kspaces.EM.run_EM(data, [1,1,2] assignment = 'soft', initializations = 50)`
 
-kspaces fit two lines and a plane to the data, returned those `affine_subspace` objects in the list `spaces` and also returned a `N` x `k` array of probabilities that each subspace 'generated' that point with the fitted probability distributions. The `affine_subspace`s of `spaces` and the columns of `responsibilities` are in the same order as the spaces were specified in `kd`.
+k-spaces fit two lines and a plane to the data, returned those `affine_subspace` objects in the list `spaces` and also returned a `N` x `k` array of probabilities that each subspace 'generated' that point with the fitted probability distributions. The `affine_subspace`s of `spaces` and the columns of `responsibilities` are in the same order as the spaces were specified in `kd`.
 
 To use these spaces as dimension reductions for our data, we can use the `transform` function. While each space was optimized for a subset of the data, the function for the dimension reduction is defined everywhere, so we can project all the points onto any of the spaces for a dimension reduction if we want. Let's use the third space, the plane, so we can get 2-D dimension-reduced data:
 
