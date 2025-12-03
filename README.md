@@ -24,7 +24,7 @@ functions intended for general usage:
 # Quick start
 
 Given a data matrix of N observations x D features, construct and fit a model with `kspaces.EM.run_EM`.
-`kspaces.EM.run_EM` requires specification of $k$, the number of spaces, and $d_i$ for each of the spaces. The argument `kd` accepts a list to specify them. For example, `[1,0,2,3]`, specifies $4$ subspaces of dimensions $ d = 1, 0 ,2 $ and $3$, or a line, a point, a plane, and a rectangular prism.
+`kspaces.EM.run_EM` requires specification of $k$, the number of spaces, and $d_i$ for each of the spaces. The argument `kd` accepts a list to specify them. For example, `[1,0,2,3]`, specifies $4$ subspaces of dimensions $d=1,0,2$ and $3$, or a line, a point, a plane, and a rectangular prism.
 
 `kspaces.EM.run_EM` does not require specifying `assignment = 'soft'` or `assignment = 'hard'` but this choice matters. Soft assignment allows points to be probabilistically 'shared' by subspaces, as described in the paper, while hard assignment is all-or-nothing. In some contexts, hard assignment will be faster as it uses singular value decomposition. However, soft assignment has smoother convergence. `assignment = 'closest'` is a form of hard assignment that does not use a probabilistic model and just assigns points to their closest subspaces. It is faster but generally not recommended.
 
