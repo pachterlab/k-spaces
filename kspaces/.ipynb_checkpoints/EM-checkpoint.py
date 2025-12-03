@@ -560,7 +560,7 @@ def expectation_maximization(points,
     
 def run_EM(points, 
            kd, 
-           assignment = 'hard', 
+           assignment = 'soft', 
            max_iter=50, 
            tol=5e-2, 
            initializations = 10, 
@@ -768,7 +768,7 @@ def fit_wrapper(space, points_, probabilities_, verbose):
 
 def set_sigmas_eq_noise(points, probabilities, spaces, verbose):
     """This function computes the correct shared variance and sets the standard deviation of noise for all spaces in the model. It computes expectation over points, spaces, and complementary dimensions for those spaces of squared distance from point to subspace. 
-    This is the average variance per discarded dimension. Equation 12 in manuscript (6/20/25).
+    This is the average variance per discarded dimension.
     
     returns: None"""
     spaces_ = [s for s in spaces if (isinstance(s, bg_space) == False)]
@@ -817,6 +817,7 @@ def adjust_std_and_update_latent(N, spaces, invalid_latent_sigmas, mean_squared_
     return new_std, spaces
     
 def enforce_min_variance(spaces, min_variance, verbose):
+    """ enforces a minimum variance > 0 to avoid singular covariance matrices. """
     min_std = np.sqrt(min_variance)
     for i, s in enumerate(spaces):
         if s.sigma < min_std:

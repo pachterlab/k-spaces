@@ -560,7 +560,7 @@ def expectation_maximization(points,
     
 def run_EM(points, 
            kd, 
-           assignment = 'hard', 
+           assignment = 'soft', 
            max_iter=50, 
            tol=5e-2, 
            initializations = 10, 
