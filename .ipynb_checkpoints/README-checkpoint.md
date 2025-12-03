@@ -1,6 +1,6 @@
 # k-spaces
 
-k-spaces fits mixtures of low dimensional Gaussian latent variable models for data modeling, dimension reduction, and subspace learning https://www.biorxiv.org/content/10.1101/2025.11.24.690254v1. Below is a quick overview of the kspaces modules with a rudimentary user guide.
+k-spaces fits mixtures of low dimensional Gaussian latent variable models for data modeling, dimension reduction, and subspace learning https://www.biorxiv.org/content/10.1101/2025.11.24.690254v1. 
 
 More examples will be uploaded soon but model_fitting_examples.ipynb has some basic usage examples and documentation, and notebooks from the paper can be found at https://github.com/pachterlab/MEPSP_2024/tree/main/notebooks_paper, with minor differences in function calls.
 
