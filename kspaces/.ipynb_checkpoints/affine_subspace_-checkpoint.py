@@ -229,6 +229,7 @@ class affine_subspace:
         self.update_latent_sigmas(latent_sigmas)
         self.update_vectors(vectors)
         self.update_sigma(points,responsibilities, verbose, sigma = sigma)
+        #self.prior is updated in EM.expectation_maximization
         return self
 
 

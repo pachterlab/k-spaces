@@ -1,21 +1,28 @@
 # k-spaces
 
-k-spaces fits mixtures of low dimensional Gaussian latent variable models for data modeling, dimension reduction, and subspace learning https://www.biorxiv.org/content/10.1101/2025.11.24.690254v1. Functions are documented with docstrings but a complete user guide is still on the way. Below is a quick overview of the kspaces modules with a rudimentary user guide.
+k-spaces fits mixtures of low dimensional Gaussian latent variable models for data modeling, dimension reduction, and subspace learning https://www.biorxiv.org/content/10.1101/2025.11.24.690254v1. Below is a quick overview of the kspaces modules with a rudimentary user guide.
 
 more examples will be uploaded soon but model_fitting_examples has some basic usage examples and documentation.
 
 functions intended for general usage:
-| function                               | short description                                       |
-|----------------------------------------|---------------------------------------------------------|
-| `EM.run_EM`                            | fit a model                                             |
-| `EM.E_step`                            | given a fitted model and some data, perform assignments |
-| `model_selection.total_log_likelihood` | compute the observed log likelihood of the data         |
-| `model_selection.model_selection`      | perform model selection using BIC or ICL                |
-| `model_selection.get_BIC`              | compute BIC for a custom model selection pipeline       |
-| `model_selection.get_ICL`              | compute ICL for a custom model selection pipeline       |
-| `generate.generate`                    | generate synthetic data from a k-spaces model           |
+|module             | function or class                  | short description                                             |
+|-------------------|------------------------------------|---------------------------------------------------------------|
+| `EM`              |`run_EM`                            | given data, construct and fit a model                         |
+| `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace        |
+| `EM`              |`E_step`                            | given a fitted model and some data, perform assignments       |
+| `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace                             |
+| `affine_subspace_`|`affine_subspace.probability`       | compute P(points| space)                                      |
+| `affine_subspace_`|`affine_subspace.transform`         | linear dimensionality reduction of points onto space          |
+| `affine_subspace_`|`affine_subspace.projection`        | projection of points onto space, still in high dimension      |
+| `affine_subspace_`|`fixed_space`                       | class that only updates noise and component weight in EM      |
+| `model_selection` |`total_log_likelihood`              | compute the observed log likelihood of the data               |
+| `model_selection` |`model_selection`                   | perform model selection using BIC or ICL                      |
+| `model_selection` |`get_BIC`                           | compute BIC for a custom model selection pipeline             |
+| `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline             |
+| `generate`        |`generate`                          | generate synthetic data from a k-spaces model                 |
 
 
+# Modules
 **EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with run_EM() fail.
 
 **model_selection** - contains functions for calculating likelihoods and performing model selection with ICL or BIC. BIC suggests a model based on the number of parameters and the observed likelihood of the data. ICL additionally penalizes BIC by the clustering entropy (it discourages selecting models with cluster components with overlapping density).
@@ -26,7 +33,9 @@ functions intended for general usage:
 
 **plotting** - visualization functions using matplotlib. view_3D() outputs static views of 3D data from different angles using matplotlib. 
 
-docstrings copied and pasted below for now:
+# Documentation for commonly used functions:
+All functions have docstrings. Here are some functions intended for general use
+
     ```python
     def run_EM(points, kd = [], assignment = 'hard', max_iter=50, tol=5e-2, initializations = 1, verbose = False, silent = False, print_solution = False, 
             randomize_init = False, batch_size = np.inf, batch_replace = True, print_ownerships = False,
@@ -68,19 +77,24 @@ docstrings copied and pasted below for now:
         returns: 'model' or 'null'.
     
         """
-        
-    def E_step(points, spaces,assignment = 'hard',verbose = False, norm = 'L2'):
-        """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
-        Noise is assumed to be orthogonal to spaces, gaussian, and homoscedastic. The variance is unique to each space.
-        P(space_i | point) = P(point | space_i)*P(space_i)/ sum over k spaces ( P(point | space_j) * P(space_j))
-        
-        points: N x D np array (or less than N if EM is in batch mode)
-        spaces: list of affine subspaces
-        assignment: "hard" "closest" or "soft"
-        verbose: bool
-        norm: "L2" "L1" or "TLAD" (Total least absolute distance)
-        
-        returns: N x K matrix of probabilities P(space | point)"""
+    def fit_single_space(points,d, min_variance = 1e-10):
+        """ fits a single space with PCA
+        points: N x D array
+        d: int. dimension of space to fit
+        min_variance: float. minimum variance added if variance along a dimension is zero to avoid a singular covariance matrix
+
+        returns: affine_subspace"""
+    
+    def E_step(points, spaces,assignment = 'hard',verbose = False):
+    """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
+    P(space_i | point) = P(point | space_i)*P(space_i)/ sum over k spaces ( P(point | space_j) * P(space_j))
+    
+    points: N x D np array (or less than N if EM is in batch mode)
+    spaces: list of affine subspaces
+    assignment: "hard" "closest" or "soft"
+    verbose: bool
+    
+    returns: N x K matrix of probabilities P(space | point)"""
          
     
     def total_log_likelihood(points, spaces, print_solution= False):
@@ -114,7 +128,7 @@ docstrings copied and pasted below for now:
         """
           
     class affine_subspace:
-        def __init__(self,vectors, translation, sigma, latent_sigmas, prior, atol = 1e-8):
+        def __init__(self,vectors, translation, sigma, latent_sigmas, prior):
             """ initializes affine subspace
             vectors: d x D list of lists
             translation: list of length D
