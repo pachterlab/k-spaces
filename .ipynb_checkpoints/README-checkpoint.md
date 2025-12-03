@@ -5,6 +5,8 @@ k-spaces fits mixtures of low dimensional Gaussian latent variable models for da
 more examples will be uploaded soon but model_fitting_examples has some basic usage examples and documentation.
 
 functions intended for general usage:
+| function                               | short description                                       |
+|----------------------------------------|---------------------------------------------------------|
 | `EM.run_EM`                            | fit a model                                             |
 | `EM.E_step`                            | given a fitted model and some data, perform assignments |
 | `model_selection.total_log_likelihood` | compute the observed log likelihood of the data         |
@@ -66,9 +68,7 @@ docstrings copied and pasted below for now:
         returns: 'model' or 'null'.
     
         """
-        ```
         
-        ```python
     def E_step(points, spaces,assignment = 'hard',verbose = False, norm = 'L2'):
         """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
         Noise is assumed to be orthogonal to spaces, gaussian, and homoscedastic. The variance is unique to each space.
@@ -81,8 +81,7 @@ docstrings copied and pasted below for now:
         norm: "L2" "L1" or "TLAD" (Total least absolute distance)
         
         returns: N x K matrix of probabilities P(space | point)"""
-        ```
-        ```python    
+         
     
     def total_log_likelihood(points, spaces, print_solution= False):
         """Calculate the Gaussian likelihood of the points given the lines using log sum exp.
@@ -93,12 +92,10 @@ docstrings copied and pasted below for now:
         
         returns: total log likelihood
         """
-        ```
-        ```python   
+         
     def get_BIC(df,num_points,log_likelihood):
         """returns BIC"""
-        ```
-        ```python
+        
     def get_ICL(probs, points, spaces, eq_noise):
         """returns Integrated Completed Likelihood C. Biernacki, G. Celeux, and G. Govaert. Assessing a mixture model for clustering with the integrated completed likelihood. IEEE Transactions on Pattern Analysis and Machine Intelligence, 22(7):719–725, July 2000. 
         probs: N x k array of assignment probabilities
@@ -108,16 +105,14 @@ docstrings copied and pasted below for now:
         
         returns: ICL """
     
-        ```
-        ```python
+        
     def generate(spaces_,size = 1, seed = None):
         """generates points given a list of affine_subspaces
         
         spaces_: list of affine_subspaces
         size: number of data points
         """
-        ```
-        ```python   
+          
     class affine_subspace:
         def __init__(self,vectors, translation, sigma, latent_sigmas, prior, atol = 1e-8):
             """ initializes affine subspace
