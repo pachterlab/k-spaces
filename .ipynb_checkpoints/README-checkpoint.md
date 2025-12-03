@@ -21,7 +21,11 @@ functions intended for general usage:
 | `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline             |
 | `generate`        |`generate`                          | generate synthetic data from a k-spaces model                 |
 
-
+```bash
+vk ref -h
+vk count -h
+...
+```
 # Modules
 **EM** - contains functions to fit a kspaces model using an EM algorithm. option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with run_EM() fail.
 
