@@ -10,12 +10,12 @@ functions intended for general usage:
 | `EM`              |`run_EM`                            | given data, construct and fit a model                         |
 | `EM`              |`E_step`                            | given a fitted model and some data, perform assignments       |
 | `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace        |
-| `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace                             |
+| `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace with a probability density for data|
 | `affine_subspace_`|`affine_subspace.transform`         | linear dimensionality reduction of points onto space          |
 | `affine_subspace_`|`affine_subspace.projection`        | projection of points onto space, still in high dimension      |
 | `affine_subspace_`|`affine_subspace.probability`       | compute P(points &#124; space)                                |
-| `affine_subspace_`|`fixed_space`                       | class that only updates noise and component weight in EM      |
-| `affine_subspace_`|`fixed_space`                       | class more fixed than fixed_spaces for modeling a fixed level of background noise. only updates component weight in EM      |
+| `affine_subspace_`|`fixed_space`                       | class that only updates noise and component weight in EM. Inherits from `affine_subspace`.      |
+| `affine_subspace_`|`bg_space`                          | class more fixed than fixed_spaces for modeling a fixed level of background noise and only updates component weight in EM. Inherits from `affine_subspace`.      |
 | `affine_subspace_`|`ensure_vector_directions`          | PCA, SVD, and k-spaces vectors are sign indeterminate. Flips basis vectors to point in the positive direction      |
 | `affine_subspace_`|`write_spaces`                      | writes spaces to a csv file                                   |
 | `affine_subspace_`|`read_spaces`                       | reads spaces from a csv file                                  |
