@@ -5,25 +5,25 @@ k-spaces fits mixtures of low dimensional Gaussian latent variable models for da
 More examples will be uploaded soon but model_fitting_examples.ipynb has some basic usage examples and documentation, and notebooks from the paper can be found at https://github.com/pachterlab/MEPSP_2024/tree/main/notebooks_paper, with minor differences in function calls.
 
 functions intended for general usage:
-|module             | function or class                  | short description                                             |
-|-------------------|------------------------------------|---------------------------------------------------------------|
-| `EM`              |`run_EM`                            | given data, construct and fit a model                         |
-| `EM`              |`E_step`                            | given a fitted model and some data, perform assignments       |
-| `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace        |
-| `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace with a probability density for data|
-| `affine_subspace_`|`affine_subspace.transform`         | linear dimensionality reduction of points onto space          |
-| `affine_subspace_`|`affine_subspace.projection`        | projection of points onto space, still in high dimension      |
-| `affine_subspace_`|`affine_subspace.probability`       | compute P(points &#124; space)                                |
+|module             | function or class                  | short description                                              |
+|-------------------|------------------------------------|----------------------------------------------------------------|
+| `EM`              |`run_EM`                            | given data, construct and fit a model.                         |
+| `EM`              |`E_step`                            | given a fitted model and some data, perform assignments.       |
+| `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace.        |
+| `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace with a probability density for data.|
+| `affine_subspace_`|`affine_subspace.transform`         | linear dimensionality reduction of points onto space.          |
+| `affine_subspace_`|`affine_subspace.projection`        | projection of points onto space, still in high dimension.      |
+| `affine_subspace_`|`affine_subspace.probability`       | compute P(points &#124; space).                                |
 | `affine_subspace_`|`fixed_space`                       | class that only updates noise and component weight in EM. Inherits from `affine_subspace`.      |
 | `affine_subspace_`|`bg_space`                          | class even more fixed than `fixed_space` for modeling a fixed level of background noise and only updates component weight in EM. Inherits from `affine_subspace`.      |
-| `affine_subspace_`|`ensure_vector_directions`          | PCA, SVD, and k-spaces vectors are sign indeterminate. Flips basis vectors to point in the positive direction      |
-| `affine_subspace_`|`write_spaces`                      | writes spaces to a csv file                                   |
-| `affine_subspace_`|`read_spaces`                       | reads spaces from a csv file                                  |
-| `model_selection` |`total_log_likelihood`              | compute the observed log likelihood of the data               |
-| `model_selection` |`model_selection`                   | perform model selection using BIC or ICL                      |
-| `model_selection` |`get_BIC`                           | compute BIC for a custom model selection pipeline             |
-| `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline             |
-| `generate`        |`generate`                          | generate synthetic data from a k-spaces model                 |
+| `affine_subspace_`|`ensure_vector_directions`          | PCA, SVD, and k-spaces vectors are sign indeterminate. Flips basis vectors to point in the positive direction.      |
+| `affine_subspace_`|`write_spaces`                      | writes spaces to a csv file.                                   |
+| `affine_subspace_`|`read_spaces`                       | reads spaces from a csv file.                                  |
+| `model_selection` |`total_log_likelihood`              | compute the observed log likelihood of the data.               |
+| `model_selection` |`model_selection`                   | perform model selection using BIC or ICL.                      |
+| `model_selection` |`get_BIC`                           | compute BIC for a custom model selection pipeline.             |
+| `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline.             |
+| `generate`        |`generate`                          | generate synthetic data from a k-spaces model.                 |
 
 # Quick start
 
@@ -38,7 +38,7 @@ Here is a basic example:
 
 `spaces, responsibilities = kspaces.EM.run_EM(data, [1,1,2] assignment = 'soft', initializations = 50)`
 
-k-spaces fit two lines and a plane to the data, returned those `affine_subspace` objects in the list `spaces` and also returned a `N` x `k` array of probabilities that each subspace 'generated' that point with the fitted probability distributions. The `affine_subspace`s of `spaces` and the columns of `responsibilities` are in the same order as the spaces were specified in `kd`.
+k-spaces fits two lines and a plane to the data, returns those `affine_subspace` objects in the list `spaces` and also returns a `N` x `k` array of probabilities that each subspace 'generated' that point with the fitted probability distributions. The `affine_subspace`s of `spaces` and the columns of `responsibilities` are in the same order as the spaces were specified in `kd`.
 
 To use these spaces as dimension reductions for our data, we can use the `transform` function. While each space was optimized for a subset of the data, the function for the dimension reduction is defined everywhere, so we can project all the points onto any of the spaces for a dimension reduction if we want. Let's use the third space, the plane, so we can get 2-D dimension-reduced data:
 
@@ -52,6 +52,13 @@ If we want to project the points onto their subspaces in the high dimensional sp
 
 This data lies on a $d$-dimensional subspace of the $D$-dimensional space, but it is still located in the original feature space and is a $N$ x $D$ matrix.
 
+We can save this with `write_spaces` and come back later to read it back in with `read_spaces`. The assignment matrix is not saved, only the model parameters, but we can use `E_step` to assign the points.
+
+```python
+kspaces.affine_subspace_.write_spaces(spaces, 'myfile.csv')
+spaces = kspaces.affine_subspace_.read_spaces('myfile.csv')
+probabilities = kspaces.EM.E_step(points, spaces, assignment = 'soft')
+```
 # Modules
 **EM** - contains functions to fit a kspaces model using an EM algorithm. The option to use deterministic annealing (Ueda and Nakano 1998) can improve the odds of finding the global maximum and is particularly helpful when many or most initializations with `run_EM` fail.
 
