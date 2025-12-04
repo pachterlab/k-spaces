@@ -36,19 +36,23 @@ Given a data matrix of N observations x D features, construct and fit a model wi
 
 Here is a basic example:
 
-`spaces, responsibilities = kspaces.EM.run_EM(data, [1,1,2] assignment = 'soft', initializations = 50)`
-
+```python
+spaces, responsibilities = kspaces.EM.run_EM(data, [1,1,2] assignment = 'soft', initializations = 50)
+```
 k-spaces fits two lines and a plane to the data, returns those `affine_subspace` objects in the list `spaces` and also returns a `N` x `k` array of probabilities that each subspace 'generated' that point with the fitted probability distributions. The `affine_subspace`s of `spaces` and the columns of `responsibilities` are in the same order as the spaces were specified in `kd`.
 
 To use these spaces as dimension reductions for our data, we can use the `transform` function. While each space was optimized for a subset of the data, the function for the dimension reduction is defined everywhere, so we can project all the points onto any of the spaces for a dimension reduction if we want. Let's use the third space, the plane, so we can get 2-D dimension-reduced data:
 
-`reduced_dim_data = spaces[2].transform(data)`
-
+```python
+reduced_dim_data = spaces[2].transform(data)
+```
 We can visualize this $N$ x $d$ data with plotting libraries like matplotlib, plotly, bokeh, seaborn, etc.
 
 If we want to project the points onto their subspaces in the high dimensional space, we use `project` instead.
 
-`projected_data = spaces[2].project(data)`
+```python
+projected_data = spaces[2].project(data)
+```
 
 This data lies on a $d$-dimensional subspace of the $D$-dimensional space, but it is still located in the original feature space and is a $N$ x $D$ matrix.
 
