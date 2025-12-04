@@ -5,6 +5,8 @@ from scipy.linalg import orth
 import scipy.linalg
 import sklearn
 import copy
+import csv
+
 
 def extend_basis(Q, target_dim): #chatgpt... double check it
     """Helper function for initialization that adds (a) linearly dependent basis vector(s) to ensure that the shape of affine_subspace.vectors matches affine_subspace.d. 
@@ -492,3 +494,91 @@ def ensure_vector_directions(spaces, inplace = True):
         s.vectors = np.array(vecs)
     if inplace == False:
         return spaces_
+    
+def write_spaces(spaces, file):
+    """writes spaces to a csv file
+    spaces: list of subspace objects
+    file: filename to write to"""
+    data = []
+    for s in spaces:
+        data.append([f'new space', type(s).__name__])
+        data.append([s.D, s.d,s.sigma,s.prior])
+        data.append(s.latent_sigmas)
+        for v in s.vectors:
+            data.append(v)
+        if len(s.vectors) == 0:
+            data.append([])
+        data.append(s.translation)
+    with open(file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(data)
+    
+    
+def read_spaces(file):
+    """reads in a file written by 'write_spaces'
+    
+    file: filename
+    returns: list of subspace objects"""
+    
+    spaces = []
+    with open(file, 'r') as f:
+        csv_reader = csv.reader(f)
+    
+        space_array = []
+        D = None
+        d = None
+        sigma = None
+        prior = None
+        latent_sigmas = None
+        vectors = None
+        translation = None
+        
+        for row in csv_reader:
+            if len(row) > 0 and row[0] == 'new space':
+                type_ = row[1]
+                D = None
+                d = None
+                sigma = None
+                prior = None
+                latent_sigmas = None
+                vectors = None
+                translation = None
+            elif D == None: #reading in a new space
+                D = int(row[0])
+                d = int(row[1])
+                sigma = float(row[2])
+                prior = float(row[3])
+            elif latent_sigmas == None:
+                latent_sigmas = [float(r) for r in row]
+            elif vectors == None or len(vectors) < d:
+                try:
+                    vectors.append([float(r) for r in row])
+                except:
+                    vectors = []
+                    if len(row) != 0:
+                        vectors.append([float(r) for r in row])
+            elif translation == None:
+                translation = [float(r) for r in row]
+                if type_ == 'affine_subspace':
+                    s = kspaces.affine_subspace_.affine_subspace(vectors,
+                        translation,
+                        sigma,
+                        latent_sigmas,
+                        prior)
+                elif type_ == 'fixed_space':
+                    s = kspaces.affine_subspace_.fixed_space(vectors,
+                        translation,
+                        sigma,
+                        latent_sigmas,
+                        prior)
+                elif type_ == 'bg_space':
+                    s = kspaces.affine_subspace_.bg_space(vectors,
+                        translation,
+                        sigma,
+                        latent_sigmas,
+                        prior)
+                else:
+                    raise ValueError(f'Unrecognized type: {type_}')
+                spaces.append(s)
+                
+    return spaces

@@ -133,7 +133,13 @@ def model_selection(points,model,null, print_solution = False, eq_noise = False,
 
     
 def get_BIC(df,num_points,log_likelihood):
-    """returns BIC"""
+    """ returns Bayesian Information Criterion
+    df: degrees of freedom. Can be obtained with 'get_df'
+    num_points: N
+    log_likelihood: observed log likelihood of data. Can be obtained with 'total_log_likelihood'
+    
+    returns: BIC
+    """
     return df*np.log(num_points)-2*log_likelihood
 
 def get_entropy(probs):

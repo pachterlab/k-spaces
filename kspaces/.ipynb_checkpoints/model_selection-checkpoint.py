@@ -133,13 +133,26 @@ def model_selection(points,model,null, print_solution = False, eq_noise = False,
 
     
 def get_BIC(df,num_points,log_likelihood):
-    """returns BIC"""
+    """ returns Bayesian Information Criterion
+    df: degrees of freedom. Can be obtained with 'get_df'
+    num_points: N
+    log_likelihood: observed log likelihood of data. Can be obtained with 'total_log_likelihood'
+    
+    returns: BIC
+    """
     return df*np.log(num_points)-2*log_likelihood
 
 def get_entropy(probs):
     return np.sum(entropy(probs,axis = 1))
 
 def get_ICL(probs, points, spaces, eq_noise):
+    """returns ICL
+    probs: N x k array of assignment probabilities
+    points: N x D array of points
+    spaces: list of affine_subspace objects
+    eq_noise: True/False, used to determine degrees of freedom. Was eq_noise set to True to fit the model?
+    
+    returns: ICL """
     N = probs.shape[0]
     k = probs.shape[1]
     LL = total_log_likelihood(points, spaces)
