@@ -29,6 +29,8 @@ functions intended for general usage:
 | `plotting`        |`view_3D_pretransformed_mpl`        | plots pretransformed points in a 3D subspace and rescales sizes of points by distance with matplotlib.        |
 | `plotting`        |`project_space`                     | projects one space onto another (or onto an sklearn PCA space) |
 
+These functions can also be accessed without the module name (e.g., `kspaces.run_EM(...)` instead of `kspaces.EM.run_EM(...)`.
+
 # Installation
 
 ```bash
