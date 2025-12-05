@@ -437,7 +437,7 @@ class bg_space(affine_subspace):
 #def numba_probability(points, translation, D, d, sigma, latent_sigmas, vectors, log):
 #        """proportional to P(point | self)
 #        ignores 1/sqrt(2 pi) term in normal pdf
-#        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection.py does this). Old version was more readable and used affine_subspace methods but was slower"""
+#        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection_.py does this). Old version was more readable and used affine_subspace methods but was slower"""
 #        N = points.shape[0]
 #        diff = points - translation  # NxD
 #

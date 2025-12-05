@@ -437,7 +437,7 @@ class bg_space(affine_subspace):
 #def numba_probability(points, translation, D, d, sigma, latent_sigmas, vectors, log):
 #        """proportional to P(point | self)
 #        ignores 1/sqrt(2 pi) term in normal pdf
-#        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection.py does this). Old version was more readable and used affine_subspace methods but was slower"""
+#        can be made exact by multiplying result by 1/(2 pi)^ D/2 (total_log_likelihood() function in model_selection_.py does this). Old version was more readable and used affine_subspace methods but was slower"""
 #        N = points.shape[0]
 #        diff = points - translation  # NxD
 #
@@ -477,7 +477,10 @@ class bg_space(affine_subspace):
 def ensure_vector_directions(spaces, inplace = True):
     """checks direction of each basis vector and flips them (reverses sign) as needed to point in a positive direction.
     Specifically, checks whether dot product of each basis vector with <1,1,1,...,1> is positive. Flips if negative.
+    spaces: list of subspace objects
+    inplace: bool. default True. Whether to modify the spaces in place or not
     
+    returns: sorted spaces
     """
     
     spaces_ = spaces

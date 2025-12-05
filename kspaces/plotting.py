@@ -22,7 +22,7 @@ def project_space(s,vis):
     returns: affine_subspace object for the projection of 's' onto 'vis'"""
     tr_vis = None
     vecs_vis = None
-    if np.any(isinstance(vis, affine_subspace), isinstance(vis, fixed_space), isinstance(vis, bg_space)):
+    if np.any([isinstance(vis, affine_subspace), isinstance(vis, fixed_space), isinstance(vis, bg_space)]):
         tr_vis = vis.translation
         vecs_vis = vis.vectors
         if vis.d == 0:
@@ -304,7 +304,7 @@ def view_3D_pca_mpl(points,
             for idx, s in enumerate(spaces):
                 if s.d == 0:
                     s_ = project_space(s,pca)
-                    plot_point_3D(ax, xlim, ylim, zlim, s_, color=space_colors[idx % len(space_colors)], alpha = alpha_spaces)
+                    plot_point_3D(ax, xlim, ylim, zlim, s_, color=space_colors[idx % len(space_colors)], alpha_s = alpha_spaces)
     
                 elif s.d == 1:
                     s_ = project_space(s,pca)
