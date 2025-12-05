@@ -3,6 +3,7 @@ from sklearn.cluster import MiniBatchKMeans
 import copy
 import time
 import multiprocessing
+from joblib import Parallel, delayed
 from scipy.special import logsumexp
 import warnings
 
@@ -692,8 +693,6 @@ def run_EM(points,
     
     return models[np.argmax(likelihoods)]
 
-from joblib import Parallel, delayed
-import numpy as np
 
 def run_EM_parallelized(points, 
     kd, 

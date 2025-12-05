@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kspaces"
+version = "0.1.1"
+description = "Mixtures of latent variable models for dimensionality reduction, subspace learning, and clustering in biological data analysis."
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
+authors = [
+    {name = "Nicholas Markarian", email = "nmarkari@usc.edu"}
+]
+maintainers = [
+    {name = "Nicholas Markarian", email = "nmarkari@usc.edu"}
+]
+requires-python = ">=3.10"
+keywords = ["k-spaces", "kspaces", "bioinformatics", "subspace", "dimension reduction", "clustering", "RNA-seq",]
+classifiers = [
+    "Environment :: Jupyter",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "numpy>=1.24.3",
+    "matplotlib>=3.7.2",
+    "scipy>=1.11.4",
+    "scikit-learn>=1.3.0",
+    "joblib>= 1.2.0"
+]
+
+
+[project.urls]
+"Homepage" = "https://github.com/pachterlab/k-spaces/"
+
+

@@ -3,11 +3,12 @@ from sklearn.cluster import MiniBatchKMeans
 import copy
 import time
 import multiprocessing
+from joblib import Parallel, delayed
 from scipy.special import logsumexp
 import warnings
 
 from .affine_subspace_ import affine_subspace, fixed_space, bg_space, check_convergence
-from .model_selection import total_log_likelihood
+from .model_selection_ import total_log_likelihood
 
 ################################### INITIALIZATION ############################################
 def add_fixed_spaces(k, spaces, fixed_spaces):
@@ -692,8 +693,6 @@ def run_EM(points,
     
     return models[np.argmax(likelihoods)]
 
-from joblib import Parallel, delayed
-import numpy as np
 
 def run_EM_parallelized(points, 
     kd, 
