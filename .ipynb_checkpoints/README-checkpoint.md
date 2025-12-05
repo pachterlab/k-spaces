@@ -10,6 +10,7 @@ functions intended for general usage:
 | `EM`              |`run_EM`                            | given data, construct and fit a model.                         |
 | `EM`              |`E_step`                            | given a fitted model and some data, perform assignments.       |
 | `EM`              |`fit_single_space`                  | given data, construct and fit a single affine_subspace.        |
+| `EM`              |`run_EM_parallelized`               | parallelized version of run_EM using multiprocessing.          |
 | `affine_subspace_`|`affine_subspace`                   | class defining an affine subspace with a probability density for data.|
 | `affine_subspace_`|`affine_subspace.transform`         | linear dimensionality reduction of points onto space.          |
 | `affine_subspace_`|`affine_subspace.projection`        | projection of points onto space, still in high dimension.      |
@@ -24,7 +25,7 @@ functions intended for general usage:
 | `model_selection` |`get_BIC`                           | compute BIC for a custom model selection pipeline.             |
 | `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline.             |
 | `generate`        |`generate`                          | generate synthetic data from a k-spaces model.                 |
-| `plotting`        |`view_3D_pca_mpl`                   | plots points and the projections of spaces in a 3D PCA with matplotlib.        |
+| `plotting`        |`view_3D_pca_mpl`                   | plots points and the projections of spaces in a 3D PCA space with matplotlib.|
 | `plotting`        |`view_3D_pretransformed_mpl`        | plots pretransformed points in a 3D subspace and rescales sizes of points by distance with matplotlib.        |
 | `plotting`        |`project_space`                     | projects one space onto another (or onto an sklearn PCA space) |
 
@@ -50,7 +51,7 @@ To use these spaces as dimension reductions for our data, we can use the `transf
 ```python
 reduced_dim_data = spaces[2].transform(data)
 ```
-We can visualize this $N$ x $d$ data with plotting libraries like matplotlib, plotly, bokeh, seaborn, etc.
+We can visualize this $N$ x $d$ data with plotting libraries like matplotlib, plotly, bokeh, seaborn, etc. We can make our own or use two built-in functions from `k-spaces.plotting` for high dimensional data visualized in 3-D dimension reductions. `view_3D_pca_mpl` and `view_3D_pretransformed_mpl` both use matplotlib. `view_3D_pca_mpl` computes a dimension reduction for the data using 3D PCA and can optionally project our fitted subspaces into the plot too. `view_3D_pretransformed_mpl` assumes we have already transformed the data using one of our subspaces (as above, although we'd need d = 3) and want to visualize it.
 
 If we want to project the points onto their subspaces in the high dimensional space, we use `project` instead.
 
@@ -139,6 +140,7 @@ def run_EM(points,
         per round (multiplied to beta_0 successively to reach beta = 1).
     """
 ```
+
 ```python    
 def E_step(points, spaces,assignment = 'hard',verbose = False):
     """ caculates "ownership" of points by each space based on the probabilities of those spaces generating those points
@@ -160,6 +162,52 @@ def fit_single_space(points,d, min_variance = 1e-10):
     min_variance: float. minimum variance added if variance along a dimension is zero to avoid a singular covariance matrix
 
     returns: affine_subspace"""
+```
+```python
+def run_EM_parallelized(points, 
+    kd, 
+    assignment='soft', 
+    max_iter=50, 
+    tol=5e-2, 
+    initializations=10, 
+    n_jobs=None,
+    randomize_init=False, 
+    batch_size=np.inf, 
+    batch_replace=True,  
+    init_spaces=[], 
+    fixed_spaces=[], 
+    min_variance=1e-10, 
+    set_noise_equal=False, 
+    DA=False, 
+    beta_0=0.5, 
+    anneal_rate=1.2,
+    max_additional_init = 0,
+    print_seeds = False):
+    
+    
+    """ Multiprocessing for run_EM with joblib. Each worker calls `run_EM` separately, and any special initializations (i.e., non-random first initialization or init_spaces are passed only to one worker. Each worker is given a separate random seed. Certain arguments for `run_EM` are hard-coded, and the `multiprocess_spaces` argument is hard-coded to False to avoid oversubscription of resources. Memory is NOT shared by jobs, so very large datasets will be copied n_jobs times.
+
+
+    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(space | point))
+
+    kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
+    assignment: default "hard". Other options: "soft" and "closest".
+    fixed spaces: list of dicts {'vec':[basis],'tr':translation} where basis vectors and translation are all lists of length D
+    init spaces: list of affine_subspaces (see affine_subspace_.py) to intialize with.
+    max_iter: maximum number of EM iterations
+    tol: default 0.05. tolerance for determining EM convergence.
+    initializations: default 1. 5-10 is recommended. Number of EM initializations to do. 
+    n_jobs: number of parallel processes requested. If None, n_jobs = min(4, initializations)
+    batch_size: default is np.inf (no batch; use full dataset) batch size for EM iterations. 
+    batch_replace: default is True. Sample with/without replacement if using batches.
+    min_variance: default is 1e-10. Minimum variance enforced to prevent singular covariance matrices in "soft" and "hard" assignment mode.
+    set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
+    DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
+    beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
+    anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
+    max_additional_init: default 0. (NOTE THIS IS DIFFERENT FROM run_EM). maximum number of additional initializations to attempt for each `run_EM` worker if all of the requested initializations fail
+    print_seeds: bool. default False. Whether to print the random seeds given to each worker `run_EM` run.
+    """
 ```
 ```python          
 class affine_subspace:
