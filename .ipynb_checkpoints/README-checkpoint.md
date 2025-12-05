@@ -24,6 +24,10 @@ functions intended for general usage:
 | `model_selection` |`get_BIC`                           | compute BIC for a custom model selection pipeline.             |
 | `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline.             |
 | `generate`        |`generate`                          | generate synthetic data from a k-spaces model.                 |
+| `plotting`        |`view_3D_pca_mpl`                   | plots points and the projections of spaces in a 3D PCA with matplotlib.        |
+| `plotting`        |`view_3D_pretransformed_mpl`        | plots pretransformed points in a 3D subspace and rescales sizes of points by distance with matplotlib.        |
+| `plotting`        |`project_space`                     | projects one space onto another (or onto an sklearn PCA space) |
+
 
 # Quick start
 
@@ -289,3 +293,108 @@ def generate(spaces,size = 1, seed = None):
     returns size x D array of points, where D is specified by the spaces.
     """
 ```
+
+```python
+def view_3D_pca_mpl(points, 
+         aspect = 'equal', 
+         subtypes = [],
+         title = '', 
+         axis_labels = ['PC 1', 'PC 2', 'PC 3'],
+         color_dict = {}, 
+         cmap_dict = {}, 
+         s_points = 2, 
+         alpha_points = 1, 
+         elevation = [70,0], 
+         azimuth = [20,90,160], 
+         legend = True, 
+         legend_loc = 'upper left',
+         save = '', 
+         show = True, 
+         markerscale = 5,
+         fontsize = 10,
+         return_figure = False):
+    """**will apply PCA to data**
+    
+    Plots points together in 3D PCA space with the projections of spaces (if space.d <= 3). 
+    Optionally colors points by subtype if the subtypes argument and either color_dict or cmap_dict arguments are used.
+    
+    points: N x D array 
+    aspect: passed to ax.set_aspect 
+    subtypes: length N list or array of subtype labels for points
+    title: passed to fig.suptitle 
+    axis_labels: default ['basis 1', 'basis 2', 'basis 3']
+    color_dict: dict. key, val pair is subtype_name:color. Overriden by cmap dict. Default of {} will plot black, while an 
+     incomplete dictionary will color non included subtypes gray.
+    cmap_dict: dict. key, val pair is subtype_name:(cmap_name,values_for_cmap)} Default of {} will plot black. 
+    alpha_points: passed to ax.scatter as alpha
+    elevation = list that sets viewing elevation(s). Elements passed to ax.view_init as elev
+    azimuth = list that sets viewing azimuth(s). Elements passed to ax.view_init as azim
+    legend = whether to plot legend. 
+    legend_loc = passed to ax.legend.
+    save = filename to save plot to. default '' does not save. 
+    show = if True, triggers plt.show() 
+    markerscale = passed to ax.legend
+    fontsize = passed to ax.legend, fig.suptitle, axis labels
+    return_figure: if True, return fig, axs"""
+ ```
+```python
+def view_3D_pretransformed_mpl(points, 
+             aspect = 'equal', 
+             subtypes = [],
+             title = '', 
+             axis_labels = ['Basis 1', 'Basis 2', 'Basis 3'],
+             color_dict = {}, 
+             cmap_dict = {}, 
+             s_points = 2, 
+             scale_by_distance = 1,
+             distances = None, 
+             alpha_points = 1, 
+             elevation = [70,0], 
+             azimuth = [20,90,160], 
+             legend = True, 
+             legend_loc = 'upper left',
+             save = '', 
+             show = True, 
+             markerscale = 5,
+             fontsize = 10,
+             return_figure = False):
+    """**assumes pre-transformed data into a 3D space**
+    
+     Plots points in pretransformed 3D space with matplotlib. affine_subspace.transform can be used to do the dimension reduction. 
+     Optionally rescales points to shrink with distance according to s_points /  ( log1p(distances[i]) ^ scale_by_distance ). 
+         affine_subspace.orthogonal_distance can be used to obtain the distances.
+     Optionally colors points by subtype if the subtypes argument and either color_dict or cmap_dict arguments are used.
+     
+     points: N x 3 array 
+     aspect: passed to ax.set_aspect 
+     subtypes: length N list or array of subtype labels for points
+     title: passed to fig.suptitle 
+     axis_labels: default ['basis 1', 'basis 2', 'basis 3']
+     color_dict: dict. key, val pair is subtype_name:color. Overriden by cmap dict. Default of {} will plot black, while an 
+         incomplete dictionary will color non included subtypes gray.
+     cmap_dict: dict. key, val pair is subtype_name:(cmap_name,values_for_cmap)} Default of {} will plot black. 
+     s_points: default 2. size for points before rescaling by distance. 
+     scale_by_distance: default 1 means point size shrinks proportionally to logarithmic distance from projection. 
+         size for point_i is s_points /  ( log1p(distances[i]) ^ scale_by_distance ) 
+     distances: If None, all points will be plotted the same size. Else, distances is used to rescale points to reflect distance from the projection.
+     alpha_points: passed to ax.scatter as alpha
+     elevation = list that sets viewing elevation(s). Elements passed to ax.view_init as elev
+     azimuth = list that sets viewing azimuth(s). Elements passed to ax.view_init as azim
+     legend = whether to plot legend. 
+     legend_loc = passed to ax.legend.
+     save = filename to save plot to. default '' does not save. 
+     show = if True, triggers plt.show() 
+     markerscale = passed to ax.legend
+     fontsize = passed to ax.legend, fig.suptitle, axis labels
+     return_figure: if True, return fig, axs):
+    
+    """
+ ```
+```python
+def project_space(s,vis):
+    """projects k-spaces subspace into the 3D subspace of PCA or a 3D k-spaces subspace
+    s: a k-spaces subspace object
+    vis: a k-spaces subspace object or a sklearn.decomposition.PCA instance
+    
+    returns: affine_subspace object for the projection of 's' onto 'vis'"""
+ ```

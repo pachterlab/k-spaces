@@ -696,23 +696,49 @@ from joblib import Parallel, delayed
 import numpy as np
 
 def run_EM_parallelized(points, 
-                        kd, 
-                        assignment='soft', 
-                        max_iter=50, 
-                        tol=5e-2, 
-                        initializations=10, 
-                        randomize_init=False, 
-                        batch_size=np.inf, 
-                        batch_replace=True,  
-                        init_spaces=[], 
-                        fixed_spaces=[], 
-                        min_variance=1e-10, 
-                        set_noise_equal=False, 
-                        DA=False, 
-                        beta_0=0.5, 
-                        anneal_rate=1.2,
-                        n_jobs=None,
-                        max_additional_init = 0):
+    kd, 
+    assignment='soft', 
+    max_iter=50, 
+    tol=5e-2, 
+    initializations=10, 
+    n_jobs=None,
+    randomize_init=False, 
+    batch_size=np.inf, 
+    batch_replace=True,  
+    init_spaces=[], 
+    fixed_spaces=[], 
+    min_variance=1e-10, 
+    set_noise_equal=False, 
+    DA=False, 
+    beta_0=0.5, 
+    anneal_rate=1.2,
+    max_additional_init = 0,
+    print_seeds = False):
+    
+    
+    """ Multiprocessing for run_EM with joblib. Each worker calls `run_EM` separately, and any special initializations (i.e., non-random first initialization or init_spaces are passed only to one worker. Each worker is given a separate random seed. Certain arguments for `run_EM` are hard-coded, and the `multiprocess_spaces` argument is hard-coded to False to avoid oversubscription of resources. Memory is NOT shared by jobs, so very large datasets will be copied n_jobs times.
+
+
+    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(space | point))
+
+    kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
+    assignment: default "hard". Other options: "soft" and "closest".
+    fixed spaces: list of dicts {'vec':[basis],'tr':translation} where basis vectors and translation are all lists of length D
+    init spaces: list of affine_subspaces (see affine_subspace_.py) to intialize with.
+    max_iter: maximum number of EM iterations
+    tol: default 0.05. tolerance for determining EM convergence.
+    initializations: default 1. 5-10 is recommended. Number of EM initializations to do. 
+    n_jobs: number of parallel processes requested. If None, n_jobs = min(4, initializations)
+    batch_size: default is np.inf (no batch; use full dataset) batch size for EM iterations. 
+    batch_replace: default is True. Sample with/without replacement if using batches.
+    min_variance: default is 1e-10. Minimum variance enforced to prevent singular covariance matrices in "soft" and "hard" assignment mode.
+    set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
+    DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
+    beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
+    anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
+    max_additional_init: default 0. (NOTE THIS IS DIFFERENT FROM run_EM). maximum number of additional initializations to attempt for each `run_EM` worker if all of the requested initializations fail
+    print_seeds: bool. default False. Whether to print the random seeds given to each worker `run_EM` run.
+    """
 
     # hard-coded arguments for each run_EM call
     return_if_failed = True
@@ -793,7 +819,8 @@ def run_EM_parallelized(points,
             seed=seed,
             max_additional_init = max_additional_init
         ))
-    print(f'Random seeds for workers: {seeds}')
+    if print_seeds:
+        print(f'Random seeds for workers: {seeds}')
     # -----------------------------------------------
     # 4. Run workers in parallel via joblib
     # -----------------------------------------------
