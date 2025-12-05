@@ -20,11 +20,11 @@ functions intended for general usage:
 | `affine_subspace_`|`ensure_vector_directions`          | PCA, SVD, and k-spaces vectors are sign indeterminate. Flips basis vectors to point in the positive direction.      |
 | `affine_subspace_`|`write_spaces`                      | writes spaces to a csv file.                                   |
 | `affine_subspace_`|`read_spaces`                       | reads spaces from a csv file.                                  |
-| `model_selection` |`total_log_likelihood`              | compute the observed log likelihood of the data.               |
-| `model_selection` |`model_selection`                   | perform model selection using BIC or ICL.                      |
-| `model_selection` |`get_BIC`                           | compute BIC for a custom model selection pipeline.             |
-| `model_selection` |`get_ICL`                           | compute ICL for a custom model selection pipeline.             |
-| `generate`        |`generate`                          | generate synthetic data from a k-spaces model.                 |
+| `model_selection_`|`total_log_likelihood`              | compute the observed log likelihood of the data.               |
+| `model_selection_`|`model_selection`                   | perform model selection using BIC or ICL.                      |
+| `model_selection_`|`get_BIC`                           | compute BIC for a custom model selection pipeline.             |
+| `model_selection_`|`get_ICL`                           | compute ICL for a custom model selection pipeline.             |
+| `generate_`       |`generate`                          | generate synthetic data from a k-spaces model.                 |
 | `plotting`        |`view_3D_pca_mpl`                   | plots points and the projections of spaces in a 3D PCA space with matplotlib.|
 | `plotting`        |`view_3D_pretransformed_mpl`        | plots pretransformed points in a 3D subspace and rescales sizes of points by distance with matplotlib.        |
 | `plotting`        |`project_space`                     | projects one space onto another (or onto an sklearn PCA space) |
