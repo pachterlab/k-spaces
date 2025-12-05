@@ -3,11 +3,12 @@ from sklearn.cluster import MiniBatchKMeans
 import copy
 import time
 import multiprocessing
+from joblib import Parallel, delayed
 from scipy.special import logsumexp
 import warnings
 
 from .affine_subspace_ import affine_subspace, fixed_space, bg_space, check_convergence
-from .model_selection import total_log_likelihood
+from .model_selection_ import total_log_likelihood
 
 ################################### INITIALIZATION ############################################
 def add_fixed_spaces(k, spaces, fixed_spaces):
@@ -248,7 +249,7 @@ def E_step(points, spaces,assignment = 'hard',verbose = False):
         assignments[rows, max_indices] = 1.0
         probabilities = assignments
         
-    elif assignment =='soft' or assignment == 'hard':
+    elif assignment in ('soft','hard'):
         #probabilistic soft assignment with distributions over latent and complementary space
         
         log_probabilities = np.array([(space.probability(points, log = True)+np.log(space.prior)) for space in spaces]).T
@@ -264,20 +265,12 @@ def E_step(points, spaces,assignment = 'hard',verbose = False):
             probabilities = assignments    
         
         if assignment == 'soft':
-            #probabilities /= probabilities.sum(axis=1, keepdims=True)
-            log_probabilities = log_probabilities - logsumexp(log_probabilities,axis = 1).reshape(len(log_probabilities),1)
+            log_probabilities  -= logsumexp(log_probabilities,axis = 1).reshape(len(log_probabilities),1)
             probabilities = np.exp(log_probabilities)    
             
-            def round_if_0_or_1(arr, tol=1e-10): #np.cov() threw an error when weight was 1.57e-17 for an entry
-                # Round values close to 0 or 1
-                rounded = np.where(np.isclose(arr, 1.0, atol=tol), 1.0, arr)
-                rounded = np.where(np.isclose(rounded, 0.0, atol=tol), 0.0, rounded)
-                rounded = np.where(np.isnan(rounded), 0.0, rounded)
-                return rounded
-            
-            probabilities =  round_if_0_or_1(probabilities)
-
-        
+   
+            probabilities[probabilities < 1e-10] = 0.0 #np.cov() threw an error when weight was 1.57e-17 for an entry
+            probabilities[probabilities > 1 - 1e-10] = 1.0
         
     if verbose:    
         print('updated ownerships: ',[round(p,2) for p in np.sum(probabilities,axis = 0)])
@@ -304,19 +297,13 @@ def E_step_DA(points, spaces,beta,verbose = False):
     if len(log_probabilities.shape) == 1: #fixes bug when only one point is passed in (axis = 1 below doesn't work otherwise)
         log_probabilities = np.array([log_probabilties])
     
-    log_probabilities = beta*log_probabilities #deterministic annealing
+    log_probabilities *= beta #deterministic annealing
     
-    log_probabilities = log_probabilities - logsumexp(log_probabilities,axis = 1).reshape(len(log_probabilities),1)
+    log_probabilities -= logsumexp(log_probabilities,axis = 1).reshape(len(log_probabilities),1)
     probabilities = np.exp(log_probabilities)    
 
-    def round_if_0_or_1(arr, tol=1e-10): #np.cov() threw an error when weight was 1.57e-17 for an entry
-        # Round values close to 0 or 1
-        rounded = np.where(np.isclose(arr, 1.0, atol=tol), 1.0, arr)
-        rounded = np.where(np.isclose(rounded, 0.0, atol=tol), 0.0, rounded)
-        rounded = np.where(np.isnan(rounded), 0.0, rounded)
-        return rounded
-
-    probabilities =  round_if_0_or_1(probabilities)
+    probabilities[probabilities < 1e-10] = 0.0 #np.cov() threw an error when weight was 1.57e-17 for an entry
+    probabilities[probabilities > 1 - 1e-10] = 1.0
 
         
         
@@ -365,9 +352,8 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
     EM_times: list of lists (shape: number of intializations, 2).
     max_iter: int.
     tol: float.
-    verbose: bool.
-    multiprocess_spaces: bool.
-    assignment: "hard" "closest" or "soft".
+    verbose: bool. verbose print messages at each EM step.
+    silent: bool. suppresses all print messages.
     print_ownerships: bool.
     batch_size: int (default is np.inf however).
     batch_replace: bool.
@@ -403,7 +389,7 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
 
             # E-step: Assign probabilities to each point for each space
 
-            probabilities = E_step_DA(points_, spaces, beta, verbose= verbose,)
+            probabilities = E_step_DA(points_, spaces, beta, verbose= verbose)
 
             tE = time.time()
 
@@ -428,17 +414,17 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
             if check_convergence(prev,spaces, tolerance = tol) == True:
                 probabilities = E_step_DA(points, spaces, beta) #note: points not points_
                 if check_ownerships(probabilities, dims, num_fixed_spaces) == True: #check final M step
-                    print(f'Beta {beta} Failed on iteration {_ + 1}: a space was eliminated')
+                    print(f'Beta {beta}: Failed on iteration {_ + 1}: a space was eliminated')
                     flag = 1
                     break
                 if not silent:
-                    print(f'Beta {beta} Converged on iteration {_ + 1}')
+                    print(f'Beta {beta}: Converged on iteration {_ + 1}')
                 break
             else:
                 prev = copy.deepcopy(spaces) 
             if _ == max_iter -1:
                 if not silent:
-                    print(f'Beta {beta} max iteration {max_iter} completed')
+                    print(f'Beta {beta}: Max iteration {max_iter} completed')
 
             EM_times.append([tE-t0,tM-tE])
         if beta == 1:
@@ -452,9 +438,21 @@ def expectation_maximization_DA(points, spaces, EM_times, max_iter=100, tol=5e-4
         print('Final ownerships: ',[round(p,1) for p in np.sum(probabilities,axis = 0)])
     return spaces, probabilities, flag
 
-def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, verbose = False, silent = False, assignment = 'hard', 
-                             print_ownerships = False, batch_size = np.inf, batch_replace = True, multiprocess_spaces = False, 
-                             min_variance = 1e-10, num_fixed_spaces = 0, set_noise_equal = False):
+def expectation_maximization(points, 
+                             spaces, 
+                             EM_times,
+                             max_iter=100,
+                             tol=5e-4, 
+                             verbose = False, 
+                             silent = False, 
+                             assignment = 'hard',
+                             print_ownerships = False, 
+                             batch_size = np.inf, 
+                             batch_replace = True, 
+                             multiprocess_spaces = False, 
+                             min_variance = 1e-10, 
+                             num_fixed_spaces = 0, 
+                             set_noise_equal = False):
     """Fit k spaces to a set of points using the EM algorithm.
     E step computes ownerships of points based on the spaces and their noise's standard deviations
     M step fits spaces based on those ownerships and minimizing the RSS
@@ -470,6 +468,7 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     verbose: bool.
     multiprocess_spaces: bool.
     assignment: "hard" "closest" or "soft".
+
     print_ownerships: bool.
     batch_size: int (default is np.inf however).
     batch_replace: bool.
@@ -484,7 +483,7 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     if verbose:
         print('initialized sigmas:',[round(s.sigma,2) for s in spaces])
     if multiprocess_spaces:
-        print('multiprocessing has significant overhead. consider trying multiprocessing=False first')
+        print('multiprocessing spaces has significant overhead. consider trying multiprocessing=False first')
     prev = copy.deepcopy(spaces)
     flag = 0
     dims = [s.d for s in spaces]
@@ -506,9 +505,9 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
             flag = 1
             break
         
-        update_ownerships(spaces, probabilities)
-
         # M-step: Update space parameters
+        update_ownerships(spaces, probabilities) #update space.prior
+
         spaces = M_step(spaces, points_, probabilities, multiprocess_spaces, verbose)
         
         if set_noise_equal == True:
@@ -538,7 +537,7 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     probabilities = E_step(points, spaces, assignment = assignment )
     
     if assignment == 'closest':
-        set_sigmas_eq_noise(points, probabilities, spaces, verbose) #see function description for explanation
+        set_sigmas_eq_noise(points, probabilities, spaces, verbose) 
         enforce_min_variance(spaces, min_variance, verbose)
         
     if print_ownerships:
@@ -549,7 +548,7 @@ def expectation_maximization(points, spaces, EM_times, max_iter=100, tol=5e-4, v
     
 def run_EM(points, 
            kd, 
-           assignment = 'hard', 
+           assignment = 'soft', 
            max_iter=50, 
            tol=5e-2, 
            initializations = 10, 
@@ -568,7 +567,8 @@ def run_EM(points,
           set_noise_equal = False, 
            DA = False, 
            beta_0 = 0.5, 
-           anneal_rate = 1.2):
+           anneal_rate = 1.2,
+           max_additional_init = 10):
     """ Runs EM with multiple initializations and selects the maximum likelihood one.
     The first initialization uses kmeans to get centroids and then passes lines through those and the origin.
     
@@ -592,6 +592,7 @@ def run_EM(points,
     DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
     beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
     anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
+    max_additional_init: default 10. maximum number of additional initializations to attempt if all of the requested initializations fail
     """
     init_times, EM_times, models, likelihoods = [],[],[],[]
     D = len(points[0])
@@ -599,8 +600,8 @@ def run_EM(points,
     kd, k, fixed_spaces, init_spaces, randomize_init = check_inputs(points, kd, max_iter, tol, fixed_spaces, D, init_spaces, randomize_init, min_variance, silent = silent)
     
     ######### LOOP TO RUN EM ########
-    max_init = 10 #maximum number of additional initializations to attempt if all of the requested initializations fail
-    max_init_ = max_init
+
+    max_init_ = int(max_additional_init)
     i = 0
     while i < initializations:
         t0 = time.time()
@@ -665,9 +666,9 @@ def run_EM(points,
         
         ### IF EM UNSUCESSFUL ###
         if flag != 0 and len(models) ==0 and i== (initializations -1): #if unsuccessful, all prior inits failed, and it is the last init, try again a few more times
-            if max_init > 0:
+            if max_additional_init > 0:
                 randomize_init = True #in case randomize_init = False and initializations = 1
-                max_init -= 1
+                max_additional_init -= 1
             else:
                 if return_if_failed:
                     print(f'Maximum {max_init_} additional attempts failed. EM unsuccessful with k spaces. Returning last attempt')
@@ -693,6 +694,158 @@ def run_EM(points,
     return models[np.argmax(likelihoods)]
 
 
+def run_EM_parallelized(points, 
+    kd, 
+    assignment='soft', 
+    max_iter=50, 
+    tol=5e-2, 
+    initializations=10, 
+    n_jobs=None,
+    randomize_init=False, 
+    batch_size=np.inf, 
+    batch_replace=True,  
+    init_spaces=[], 
+    fixed_spaces=[], 
+    min_variance=1e-10, 
+    set_noise_equal=False, 
+    DA=False, 
+    beta_0=0.5, 
+    anneal_rate=1.2,
+    max_additional_init = 0,
+    print_seeds = False):
+    
+    
+    """ Multiprocessing for run_EM with joblib. Each worker calls `run_EM` separately, and any special initializations (i.e., non-random first initialization or init_spaces are passed only to one worker. Each worker is given a separate random seed. Certain arguments for `run_EM` are hard-coded, and the `multiprocess_spaces` argument is hard-coded to False to avoid oversubscription of resources. Memory is NOT shared by jobs, so very large datasets will be copied n_jobs times.
+
+
+    returns: spaces (list of affine subspaces), probabilities (N x K np array of P(space | point))
+
+    kd: 1 x k list containing dimensions (d) for subspaces. i.e. [1,1,1] or [0,2,1]
+    assignment: default "hard". Other options: "soft" and "closest".
+    fixed spaces: list of dicts {'vec':[basis],'tr':translation} where basis vectors and translation are all lists of length D
+    init spaces: list of affine_subspaces (see affine_subspace_.py) to intialize with.
+    max_iter: maximum number of EM iterations
+    tol: default 0.05. tolerance for determining EM convergence.
+    initializations: default 1. 5-10 is recommended. Number of EM initializations to do. 
+    n_jobs: number of parallel processes requested. If None, n_jobs = min(4, initializations)
+    batch_size: default is np.inf (no batch; use full dataset) batch size for EM iterations. 
+    batch_replace: default is True. Sample with/without replacement if using batches.
+    min_variance: default is 1e-10. Minimum variance enforced to prevent singular covariance matrices in "soft" and "hard" assignment mode.
+    set_noise_equal: default False. If true, enforces equal sigma_noise for each space after each M step.
+    DA: default False. if True, use deterministic annealing EM (Naonori Ueda and Ryohei Nakano. Deterministic annealing EM algorithm. Neural Networks, 11(2):271–282, March 1998.) Will take longer to run. higher beta_0 and higher anneal_rate lead to faster convergence. 
+    beta_0: default 0.5. ignored if DA = False. Must be between 0 and 1. Inverse to initial annealing "temperature." Lower beta_0 is "hotter"
+    anneal_rate: default 1.2. ignored if DA = False. Must be > 1. Factor to cool down temperature by per round (multiplied to beta_0 successively to reach beta = 1).
+    max_additional_init: default 0. (NOTE THIS IS DIFFERENT FROM run_EM). maximum number of additional initializations to attempt for each `run_EM` worker if all of the requested initializations fail
+    print_seeds: bool. default False. Whether to print the random seeds given to each worker `run_EM` run.
+    """
+
+    # hard-coded arguments for each run_EM call
+    return_if_failed = True
+    print_ownerships = False
+    multiprocess_spaces = False
+    verbose = False
+    silent = True
+    print_solution = False
+
+    # Validate inputs
+    kd, k, fixed_spaces, init_spaces, randomize_init = check_inputs(
+        points, kd, max_iter, tol, fixed_spaces, points.shape[1], 
+        init_spaces, randomize_init, min_variance, silent=silent
+    )
+
+    # -----------------------------------------------
+    # 1. Decide number of workers
+    # -----------------------------------------------
+    if n_jobs is None:
+        n_jobs = min(4, initializations)
+
+    n_jobs = max(1, min(n_jobs, initializations))
+    seeds = []
+    # -----------------------------------------------
+    # 2. Split initializations across workers
+    # -----------------------------------------------
+    base = initializations // n_jobs
+    extras = initializations % n_jobs
+
+    inits_per_worker = [base + (1 if j < extras else 0) for j in range(n_jobs)]
+    print(inits_per_worker)
+    # -----------------------------------------------
+    # 3. Handle special initializations
+    #    → only first worker gets init_spaces / randomize_init = False
+    # -----------------------------------------------
+    worker_args = []
+
+    for j in range(n_jobs):
+        n_inits = inits_per_worker[j]
+
+        if n_inits == 0:
+            continue
+
+        # special initializations ONLY for first worker
+        if j == 0:
+            worker_init_spaces = init_spaces
+            worker_randomize_init = randomize_init
+        else:
+            worker_init_spaces = []
+            worker_randomize_init = False  # only random initializations
+
+        seed = np.random.randint(0,1000,size = 1)[0]
+        seeds.append(seed)
+        
+        worker_args.append(dict(
+            points=points,
+            kd=kd,
+            assignment=assignment,
+            max_iter=max_iter,
+            tol=tol,
+            initializations=n_inits,
+            randomize_init=worker_randomize_init,
+            batch_size=batch_size,
+            batch_replace=batch_replace,
+            init_spaces=worker_init_spaces,
+            fixed_spaces=fixed_spaces,
+            min_variance=min_variance,
+            set_noise_equal=set_noise_equal,
+            DA=DA,
+            beta_0=beta_0,
+            anneal_rate=anneal_rate,
+            return_if_failed=return_if_failed,
+            print_ownerships=print_ownerships,
+            multiprocess_spaces=multiprocess_spaces,
+            verbose=verbose,
+            silent=silent,
+            print_solution=print_solution,
+            seed=seed,
+            max_additional_init = max_additional_init
+        ))
+    if print_seeds:
+        print(f'Random seeds for workers: {seeds}')
+    # -----------------------------------------------
+    # 4. Run workers in parallel via joblib
+    # -----------------------------------------------
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(_run_EM_worker_wrapper)(**args)
+        for args in worker_args
+    )
+
+    # -----------------------------------------------
+    # 5. Aggregate results, pick best model
+    # -----------------------------------------------
+    models = []
+    likelihoods = []
+
+    for spaces, probabilities in results:
+        models.append((spaces, probabilities))
+        ll = total_log_likelihood(points, spaces, print_solution=False)
+        likelihoods.append(ll)
+
+    return models[np.argmax(likelihoods)]
+
+
+def _run_EM_worker_wrapper(seed, **kwargs):
+    np.random.seed(seed)
+    return run_EM(**kwargs)
+
 
 ############################################ EM HELPERS #################################################################
 def batch(points, batch_size):
@@ -701,7 +854,7 @@ def batch(points, batch_size):
     returns: min(N,batch_size) x D array of points"""
     points_ = None
     if batch_size < len(points):
-        indices = np.random.choice(len(points), size=batch_size, replace=False) #indices = np.random.randint(low = 0, high = len(points)-1, size = batch_size)
+        indices = np.random.choice(len(points), size=batch_size, replace=False) 
         points_ = points[indices]
     else:
         points_ = points
@@ -757,7 +910,7 @@ def fit_wrapper(space, points_, probabilities_, verbose):
 
 def set_sigmas_eq_noise(points, probabilities, spaces, verbose):
     """This function computes the correct shared variance and sets the standard deviation of noise for all spaces in the model. It computes expectation over points, spaces, and complementary dimensions for those spaces of squared distance from point to subspace. 
-    This is the average variance per discarded dimension. Equation 12 in manuscript (6/20/25).
+    This is the average variance per discarded dimension.
     
     returns: None"""
     spaces_ = [s for s in spaces if (isinstance(s, bg_space) == False)]
@@ -806,6 +959,7 @@ def adjust_std_and_update_latent(N, spaces, invalid_latent_sigmas, mean_squared_
     return new_std, spaces
     
 def enforce_min_variance(spaces, min_variance, verbose):
+    """ enforces a minimum variance > 0 to avoid singular covariance matrices. """
     min_std = np.sqrt(min_variance)
     for i, s in enumerate(spaces):
         if s.sigma < min_std:
