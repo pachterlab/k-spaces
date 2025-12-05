@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kspaces"
-version = "0.1.1"
+version = "0.1.5"
 description = "Mixtures of latent variable models for dimensionality reduction, subspace learning, and clustering in biological data analysis."
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
@@ -17,7 +17,6 @@ maintainers = [
 requires-python = ">=3.10"
 keywords = ["k-spaces", "kspaces", "bioinformatics", "subspace", "dimension reduction", "clustering", "RNA-seq",]
 classifiers = [
-    "Environment :: Jupyter",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",

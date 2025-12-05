@@ -17,7 +17,6 @@ maintainers = [
 requires-python = ">=3.10"
 keywords = ["k-spaces", "kspaces", "bioinformatics", "subspace", "dimension reduction", "clustering", "RNA-seq",]
 classifiers = [
-    "Environment :: Jupyter",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",

@@ -563,19 +563,19 @@ def read_spaces(file):
             elif translation == None:
                 translation = [float(r) for r in row]
                 if type_ == 'affine_subspace':
-                    s = kspaces.affine_subspace_.affine_subspace(vectors,
+                    s = affine_subspace(vectors,
                         translation,
                         sigma,
                         latent_sigmas,
                         prior)
                 elif type_ == 'fixed_space':
-                    s = kspaces.affine_subspace_.fixed_space(vectors,
+                    s = fixed_space(vectors,
                         translation,
                         sigma,
                         latent_sigmas,
                         prior)
                 elif type_ == 'bg_space':
-                    s = kspaces.affine_subspace_.bg_space(vectors,
+                    s = bg_space(vectors,
                         translation,
                         sigma,
                         latent_sigmas,
