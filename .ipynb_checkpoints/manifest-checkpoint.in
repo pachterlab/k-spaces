@@ -1,8 +1,0 @@
-exclude model_fitting_examples.ipynb
-exclude test1.ipynb
-exclude test2.ipynb
-exclude test3.ipynb
-exclude environment.yml
-
-
-
