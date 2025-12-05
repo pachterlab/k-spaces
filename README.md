@@ -29,6 +29,11 @@ functions intended for general usage:
 | `plotting`        |`view_3D_pretransformed_mpl`        | plots pretransformed points in a 3D subspace and rescales sizes of points by distance with matplotlib.        |
 | `plotting`        |`project_space`                     | projects one space onto another (or onto an sklearn PCA space) |
 
+# Installation
+
+```bash
+pip install kspaces
+```
 
 # Quick start
 
